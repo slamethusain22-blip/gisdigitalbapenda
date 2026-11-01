@@ -1,0 +1,3415 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GIS Digital - Bidang Pengendalian & Evaluasi Bapenda Prov. Gorontalo</title>
+
+  <!-- PWA Manifest Data URI -->
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22GIS%20Digital%20Bapenda%20Gorontalo%22%2C%22short_name%22%3A%22GIS%20Bapenda%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230A1128%22%2C%22theme_color%22%3A%22%230A1128%22%2C%22description%22%3A%22Aplikasi%20Generate%20Intensifikasi%20Samsat%20(GIS)%20Digital%20Bapenda%20Provinsi%20Gorontalo%22%7D" />
+  <meta name="theme-color" content="#0A1128" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Leaflet JS & CSS for Real OpenStreetMap Geospatial Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- SheetJS for Excel/CSV Import & Export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            navy: {
+              800: '#0F2942',
+              900: '#0A1128',
+              950: '#060B19'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Full-Page Reset untuk menutup elemen bawaan Blogger tanpa perlu edit template XML */
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      overflow-x: hidden;
+      background-color: #F1F5F9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    #gis-root-wrapper {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      background-color: #F1F5F9;
+      overflow: hidden;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+    .sidebar-scroll::-webkit-scrollbar-track {
+      background: #0A1128;
+    }
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+      background: #1E293B;
+    }
+    /* Print Styles */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      #gis-root-wrapper {
+        position: static !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: white !important;
+      }
+      #main-scroll-area {
+        overflow: visible !important;
+        height: auto !important;
+      }
+    }
+    /* Animasi denyut titik prioritas geospasial */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.8; }
+      80%, 100% { transform: scale(2.4); opacity: 0; }
+    }
+    .pulse-circle {
+      animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    /* Leaflet Custom Marker & Container Styling */
+    #leaflet-gorontalo-map {
+      width: 100%;
+      height: 460px;
+      border-radius: 14px;
+      z-index: 10;
+    }
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px !important;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25) !important;
+      padding: 2px !important;
+    }
+    .leaflet-popup-content {
+      margin: 10px 12px !important;
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-blue-600 selection:text-white">
+
+<div id="gis-root-wrapper">
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed top-20 right-4 z-[100005] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+  <!-- MODAL CONTAINER -->
+  <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100002] hidden items-center justify-center p-4">
+    <div id="modal-content" class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden"></div>
+  </div>
+
+  <!-- LOGIN VIEW -->
+  <div id="login-screen" class="fixed inset-0 z-[100000] bg-gradient-to-br from-navy-950 via-navy-900 to-blue-950 flex items-center justify-center p-4 overflow-y-auto hidden">
+    <div class="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/15 overflow-hidden my-auto">
+      
+      <!-- Sisi Kiri Branding Instansi -->
+      <div class="lg:col-span-6 p-8 lg:p-10 bg-gradient-to-br from-blue-600/30 to-indigo-900/40 text-white flex flex-col justify-between relative overflow-hidden">
+        <div class="relative z-10">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold mb-6">
+            <i class="fa-solid fa-shield-halved"></i> PEMERINTAH PROVINSI GORONTALO
+          </div>
+          <div class="flex items-center gap-3.5 mb-4">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-navy-950 shadow-lg shadow-amber-500/20 font-extrabold text-2xl shrink-0">
+              <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+            <div>
+              <h1 class="text-2xl font-extrabold tracking-tight leading-tight">GIS DIGITAL SAMSAT</h1>
+              <p class="text-xs text-blue-200 font-medium">Generate Intensifikasi Samsat Digital</p>
+            </div>
+          </div>
+          <p class="text-sm text-blue-100/90 leading-relaxed mb-6">
+            Sistem Informasi Geospasial, Monitoring Kendaraan R2 & R4, Evaluasi Tunggakan, Optimalisasi Potensi PAD 10%, dan Integrasi Door-to-Door Samsat (DIS) Digital.
+          </p>
+
+          <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-white/10 rounded-xl p-3 border border-white/10">
+              <div class="text-[11px] text-blue-200">Total Objek Kendaraan</div>
+              <div class="text-lg font-extrabold text-white">619.814 <span class="text-[10px] font-normal text-emerald-300">Unit</span></div>
+            </div>
+            <div class="bg-white/10 rounded-xl p-3 border border-white/10">
+              <div class="text-[11px] text-blue-200">Kepatuhan Wajib Pajak</div>
+              <div class="text-lg font-extrabold text-amber-300">44,67% <span class="text-[10px] font-normal text-blue-200">Provinsi</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative z-10 pt-4 border-t border-white/15 flex items-center justify-between text-xs text-blue-200">
+          <span>Bidang Pengendalian & Evaluasi</span>
+          <span class="font-bold text-white">BAPENDA 2026</span>
+        </div>
+      </div>
+
+      <!-- Sisi Kanan Form Login Hybrid -->
+      <div class="lg:col-span-6 p-8 lg:p-10 bg-white text-slate-800 flex flex-col justify-center">
+        <div id="preview-login-badge" class="hidden mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+          <div class="font-bold flex items-center gap-1.5 mb-1">
+            <i class="fa-solid fa-flask text-amber-600"></i> MODE PREVIEW AKTIF (IN-MEMORY)
+          </div>
+          <div class="space-y-0.5 text-[11px] text-amber-800">
+            <div>• <strong>Login Admin:</strong> Username <code class="bg-amber-200/60 px-1.5 py-0.5 rounded font-bold">admin</code> | Password <code class="bg-amber-200/60 px-1.5 py-0.5 rounded font-bold">bapenda2026</code></div>
+            <div>• <strong>Login Petugas DIS:</strong> Username <code class="bg-amber-200/60 px-1.5 py-0.5 rounded font-bold">petugas_kota</code> | Password <code class="bg-amber-200/60 px-1.5 py-0.5 rounded font-bold">dis2026</code></div>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <h2 class="text-xl font-extrabold text-slate-900">Masuk ke Dashboard</h2>
+          <p class="text-xs text-slate-500 mt-1">Pilih peran akses untuk masuk ke sistem pengendalian Bapenda</p>
+        </div>
+
+        <!-- Role Switcher -->
+        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl mb-5">
+          <button type="button" id="tab-role-admin" class="py-2 px-3 rounded-lg text-xs font-bold transition-all bg-navy-900 text-white shadow-sm flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-user-shield"></i> Admin Bapenda
+          </button>
+          <button type="button" id="tab-role-petugas" class="py-2 px-3 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-id-badge"></i> Operator / DIS
+          </button>
+        </div>
+
+        <form id="login-form" class="space-y-4">
+          <div>
+            <label id="label-login-id" class="block text-xs font-bold text-slate-700 mb-1.5">Username / Email Admin</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-solid fa-user text-xs"></i>
+              </span>
+              <input type="text" id="input-login-id" required placeholder="Ketik admin atau email" class="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5">Password Akses</label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                <i class="fa-solid fa-lock text-xs"></i>
+              </span>
+              <input type="password" id="input-login-password" required placeholder="Masukkan password (bapenda2026)" class="w-full pl-9 pr-10 py-2.5 text-sm rounded-xl border border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 outline-none transition" />
+              <button type="button" id="btn-toggle-pass" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-eye text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="login-error-box" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs font-medium leading-relaxed"></div>
+
+          <button type="submit" id="btn-submit-login" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-blue-600/25 transition flex items-center justify-center gap-2">
+            <span id="btn-login-text">Masuk Sistem GIS Digital</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+
+        <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+          <span><i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i> Sesi Login Persisten (Anti-Logout)</span>
+          <span>v2.8 Prov. Gorontalo</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION SHELL (TOPBAR + SIDEBAR + CONTENT) -->
+  <header class="h-16 bg-navy-900 text-white flex items-center justify-between px-4 lg:px-6 border-b border-slate-800 shrink-0 no-print">
+    <!-- Kiri: Brand & Toggle -->
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-400 to-yellow-300 text-navy-950 flex items-center justify-center font-extrabold text-lg shadow-md">
+        <i class="fa-solid fa-gem"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-extrabold text-sm sm:text-base tracking-tight text-white leading-none">GIS Digital Samsat</h1>
+          <span id="badge-preview-topbar" class="hidden px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-amber-400 text-navy-950">PREVIEW</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-0.5 hidden sm:block">Bidang Pengendalian & Evaluasi • Bapenda Prov. Gorontalo</p>
+      </div>
+    </div>
+
+    <!-- Tengah: Search Bar Kapsul -->
+    <div class="hidden md:flex items-center flex-1 max-w-md mx-6">
+      <div class="relative w-full">
+        <input type="text" id="global-search-input" placeholder="Cari Kabupaten/Kota, Kecamatan, Desa, atau Nopol DIS..." class="w-full bg-white text-slate-800 placeholder-slate-400 text-xs font-medium rounded-full py-2 pl-4 pr-10 outline-none focus:ring-2 focus:ring-blue-500 shadow-inner" />
+        <button type="button" id="btn-clear-search" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-blue-600">
+          <i class="fa-solid fa-magnifying-glass text-xs"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Kanan: Tanggal, Notifikasi, Fullscreen, Profil Admin -->
+    <div class="flex items-center gap-2.5 sm:gap-3.5">
+      <div class="hidden sm:flex items-center gap-2 bg-white text-slate-800 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm">
+        <i class="fa-regular fa-calendar-check text-blue-600"></i>
+        <select id="select-tahun-anggaran" class="bg-transparent outline-none cursor-pointer font-bold text-xs">
+          <option value="2026">TA 2026 (Aktif)</option>
+          <option value="2025">TA 2025 (Arsip)</option>
+        </select>
+      </div>
+
+      <button type="button" id="btn-notif-prioritas" title="Wilayah Prioritas Tunggakan Berat (>10 Tahun)" class="relative p-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition">
+        <i class="fa-regular fa-bell text-sm"></i>
+        <span id="notif-count-badge" class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-extrabold flex items-center justify-center">0</span>
+      </button>
+
+      <button type="button" id="btn-quick-settings" title="Pengaturan Akun & Password Admin" class="p-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition hidden sm:flex">
+        <i class="fa-solid fa-gear text-sm"></i>
+      </button>
+
+      <button type="button" id="btn-fullscreen" title="Layar Penuh" class="p-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition hidden sm:flex">
+        <i class="fa-solid fa-expand text-sm"></i>
+      </button>
+
+      <div class="flex items-center gap-2.5 pl-2 border-l border-slate-700">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold text-xs shadow">
+          <i class="fa-solid fa-user-tie"></i>
+        </div>
+        <div class="hidden xl:block text-left leading-tight">
+          <div id="topbar-user-name" class="text-xs font-bold text-white">Admin</div>
+          <div id="topbar-user-branch" class="text-[10px] font-semibold text-emerald-400">Bapenda Provinsi</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- BODY CONTAINER: SIDEBAR KIRI (Desktop) + MAIN CONTENT -->
+  <div class="flex flex-1 overflow-hidden relative">
+    
+    <!-- LEFT SIDEBAR (Desktop Only) -->
+    <aside class="hidden lg:flex flex-col w-64 bg-navy-900 text-slate-300 border-r border-slate-800 shrink-0 justify-between sidebar-scroll overflow-y-auto no-print">
+      <nav id="desktop-sidebar-nav" class="p-3 space-y-1"></nav>
+
+      <!-- Panel Live Summary Bawah Sidebar -->
+      <div class="p-3">
+        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 shadow-lg">
+          <div class="flex items-center gap-2 text-amber-400 font-extrabold text-xs mb-2.5">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Live Indikator Provinsi</span>
+          </div>
+          <div class="space-y-2 text-[11px]">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+              <div>
+                <div class="text-slate-400">Kepatuhan Pajak</div>
+                <div id="sidebar-live-kepatuhan" class="text-white font-extrabold text-xs">44,67%</div>
+              </div>
+              <span class="text-emerald-400 font-bold">▲ +10% Opt</span>
+            </div>
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+              <div>
+                <div class="text-slate-400">Capaian PKB 2026</div>
+                <div id="sidebar-live-pkb" class="text-white font-extrabold text-xs">Rp 0</div>
+              </div>
+              <span id="sidebar-live-pkb-pct" class="text-emerald-400 font-bold">▲ 0%</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-slate-400">Capaian BBNKB</div>
+                <div id="sidebar-live-bbnkb" class="text-white font-extrabold text-xs">Rp 0</div>
+              </div>
+              <span id="sidebar-live-bbnkb-pct" class="text-emerald-400 font-bold">▲ 0%</span>
+            </div>
+          </div>
+          <div class="mt-2.5 pt-2 border-t border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
+            <span>Status Sinkronisasi:</span>
+            <span class="text-emerald-400 font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span> Real-Time</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT SCROLL AREA -->
+    <main id="main-scroll-area" class="flex-1 overflow-y-auto p-3 sm:p-5 pb-24 lg:pb-8 space-y-4">
+      <div id="app-view-container"></div>
+    </main>
+
+    <!-- FLOATING BOTTOM NAVIGATION BAR (Mobile/HP Only) -->
+    <nav id="mobile-bottom-nav" class="lg:hidden fixed bottom-0 inset-x-0 bg-navy-900/95 backdrop-blur-md text-slate-300 border-t border-slate-800 z-[99999] flex items-center justify-around py-1.5 px-1 shadow-2xl no-print"></nav>
+
+  </div>
+</div>
+
+<!-- SCRIPT UTAMA APLIKASI (MODULE + FIREBASE + STRICT DUAL MODE) -->
+<script type="module">
+// KONFIGURASI APLIKASI
+const IS_PREVIEW = true; // Ubah menjadi false SAAT DEPLOY / PUBLISH agar terhubung murni ke Firebase tanpa data dummy
+
+// PASTE FIREBASE CONFIG ANDA DI SINI
+const firebaseConfig = {
+  apiKey: "API_KEY_ANDA",
+  authDomain: "PROJECT_ID.firebaseapp.com",
+  projectId: "PROJECT_ID",
+  storageBucket: "PROJECT_ID.appspot.com",
+  messagingSenderId: "SENDER_ID",
+  appId: "APP_ID"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInAnonymously,
+  signOut,
+  onAuthStateChanged,
+  updatePassword,
+  setPersistence,
+  browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  addDoc,
+  deleteDoc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// ============================================================================
+// 1. REGISTRASI PWA SERVICE WORKER DINAMIS VIA BLOB
+// ============================================================================
+(function registerDynamicPWA() {
+  if ('serviceWorker' in navigator) {
+    const swCode = [
+      "self.addEventListener('install', function(e) { self.skipWaiting(); });",
+      "self.addEventListener('activate', function(e) { e.waitUntil(self.clients.claim()); });",
+      "self.addEventListener('fetch', function(e) {});"
+    ].join("\n");
+    try {
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl).catch(function() {});
+    } catch (err) {}
+  }
+})();
+
+// ============================================================================
+// 2. PERSISTENT SESSION HELPER VIA INDEXEDDB (Anti-Logout Saat Refresh)
+// ============================================================================
+const IDB_NAME = "GIS_Bapenda_Gorontalo_IDB_v3";
+const IDB_STORE = "app_state_store";
+
+function openAppIDB() {
+  return new Promise(function(resolve, reject) {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = function(e) {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+async function idbGet(key) {
+  try {
+    const db = await openAppIDB();
+    return await new Promise(function(resolve) {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(key);
+      req.onsuccess = function() { resolve(req.result); };
+      req.onerror = function() { resolve(null); };
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+async function idbSet(key, val) {
+  try {
+    const db = await openAppIDB();
+    return await new Promise(function(resolve) {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      const store = tx.objectStore(IDB_STORE);
+      store.put(val, key);
+      tx.oncomplete = function() { resolve(true); };
+      tx.onerror = function() { resolve(false); };
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+async function idbDelete(key) {
+  try {
+    const db = await openAppIDB();
+    return await new Promise(function(resolve) {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      const store = tx.objectStore(IDB_STORE);
+      store.delete(key);
+      tx.oncomplete = function() { resolve(true); };
+      tx.onerror = function() { resolve(false); };
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+// ============================================================================
+// 3. STATE APLIKASI & STRUKTUR MENU
+// ============================================================================
+const MENU_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', shortLabel: 'Dashboard', icon: 'fa-solid fa-house-chimney' },
+  { id: 'kendaraan', label: 'Data Kendaraan', shortLabel: 'Kendaraan', icon: 'fa-solid fa-car-side' },
+  { id: 'tunggakan', label: 'Data Tunggakan', shortLabel: 'Tunggakan', icon: 'fa-solid fa-triangle-exclamation' },
+  { id: 'geospasial', label: 'Peta Geospasial', shortLabel: 'Geospasial', icon: 'fa-solid fa-map-location-dot' },
+  { id: 'potensi_kepatuhan', label: 'Potensi PAD & Patuh', shortLabel: 'Potensi 10%', icon: 'fa-solid fa-chart-pie' },
+  { id: 'realisasi', label: 'Target & Realisasi', shortLabel: 'Realisasi', icon: 'fa-solid fa-money-bill-trend-up' },
+  { id: 'integrasi_dis', label: 'Integrasi DIS Digital', shortLabel: 'DIS URL', icon: 'fa-solid fa-link' },
+  { id: 'laporan_dss', label: 'Laporan Keputusan', shortLabel: 'Laporan', icon: 'fa-solid fa-file-signature' },
+  { id: 'pengaturan', label: 'Pengaturan Admin', shortLabel: 'Akun', icon: 'fa-solid fa-user-gear' }
+];
+
+const WILAYAH_LIST = [
+  "KOTA GORONTALO",
+  "KABUPATEN GORONTALO",
+  "KABUPATEN BONE BOLANGO",
+  "KABUPATEN BOALEMO",
+  "KABUPATEN POHUWATO",
+  "KABUPATEN GORONTALO UTARA"
+];
+
+const GEO_COORDS = {
+  "KOTA GORONTALO": { lat: 0.5435, lng: 123.0568, radius: 18, color: "#EF4444", code: "KOTA-GTLO", ibuKota: "Kota Gorontalo", samsat: "Samsat Kota Gorontalo" },
+  "KABUPATEN GORONTALO": { lat: 0.6267, lng: 122.9794, radius: 22, color: "#EF4444", code: "KAB-GTLO", ibuKota: "Limboto", samsat: "Samsat Limboto" },
+  "KABUPATEN BONE BOLANGO": { lat: 0.5644, lng: 123.1869, radius: 14, color: "#F59E0B", code: "BONBOL", ibuKota: "Suwawa", samsat: "Samsat Suwawa" },
+  "KABUPATEN BOALEMO": { lat: 0.5186, lng: 122.3364, radius: 14, color: "#10B981", code: "BOALEMO", ibuKota: "Tilamuta", samsat: "Samsat Tilamuta" },
+  "KABUPATEN POHUWATO": { lat: 0.4969, lng: 121.8161, radius: 14, color: "#F59E0B", code: "POHUWATO", ibuKota: "Marisa", samsat: "Samsat Marisa" },
+  "KABUPATEN GORONTALO UTARA": { lat: 0.8358, lng: 122.9056, radius: 14, color: "#10B981", code: "GORUT", ibuKota: "Kwandang", samsat: "Samsat Kwandang" }
+};
+
+// Titik Koordinat 9 Kecamatan & Kelurahan Prioritas (Layer Kecamatan/Kelurahan)
+const GEO_KECAMATAN_POINTS = [
+  { kab_kota: "KOTA GORONTALO", kecamatan: "KOTA SELATAN", kelurahan: "Limba U Dua, Biawao, Limba B", lat: 0.5382, lng: 123.0585, kend: 24510, tung: 16240, berat: 5890, kategori: "Berat (>10 Tahun)", color: "#EF4444" },
+  { kab_kota: "KOTA GORONTALO", kecamatan: "KOTA TIMUR", kelurahan: "Heledulaa, Ipilo, Moodu, Padebuolo", lat: 0.5428, lng: 123.0732, kend: 22890, tung: 15110, berat: 5420, kategori: "Berat (>10 Tahun)", color: "#EF4444" },
+  { kab_kota: "KOTA GORONTALO", kecamatan: "KOTA UTARA", kelurahan: "Dulomo Selatan, Dembe Jaya, Wongkaditi", lat: 0.5695, lng: 123.0630, kend: 19420, tung: 12950, berat: 4610, kategori: "Berat (>10 Tahun)", color: "#EF4444" },
+  { kab_kota: "KOTA GORONTALO", kecamatan: "KOTA TENGAH", kelurahan: "Pulubala, Paguyaman, Liluwo, Wumialo", lat: 0.5562, lng: 123.0554, kend: 23150, tung: 15430, berat: 5510, kategori: "Berat (>10 Tahun)", color: "#EF4444" },
+  { kab_kota: "KOTA GORONTALO", kecamatan: "KOTA BARAT", kelurahan: "Buladu, Buliide, Tenilo, Pilolodaa", lat: 0.5415, lng: 123.0315, kend: 17850, tung: 11820, berat: 4120, kategori: "Sedang (5 Tahun)", color: "#F59E0B" },
+  { kab_kota: "KOTA GORONTALO", kecamatan: "DUNGINGI", kelurahan: "Huangobotu, Libuo, Tuladenggi, Tomulabutao", lat: 0.5518, lng: 123.0432, kend: 18920, tung: 12410, berat: 4390, kategori: "Sedang (5 Tahun)", color: "#F59E0B" },
+  { kab_kota: "KOTA GORONTALO", kecamatan: "SIPATANA", kelurahan: "Bulotadaa Barat, Bulotadaa Timur, Tapa", lat: 0.5768, lng: 123.0548, kend: 13450, tung: 8920, berat: 3110, kategori: "Sedang (5 Tahun)", color: "#F59E0B" },
+  { kab_kota: "KOTA GORONTALO", kecamatan: "DUMBO RAYA", kelurahan: "Talumolo, Botu, Leato Utara, Leato Selatan", lat: 0.5260, lng: 123.0765, kend: 10820, tung: 7180, berat: 2450, kategori: "Ringan (1 Tahun)", color: "#10B981" },
+  { kab_kota: "KOTA GORONTALO", kecamatan: "HULONTHALANGI", kelurahan: "Pohe, Tanjung Kramat, Tenda, Donggala", lat: 0.5210, lng: 123.0510, kend: 8808, tung: 6357, berat: 1746, kategori: "Ringan (1 Tahun)", color: "#10B981" },
+  { kab_kota: "KABUPATEN GORONTALO", kecamatan: "LIMBOTO", kelurahan: "Kayubulan, Hepuhulawa, Hunggaluwa, Dutulanaa", lat: 0.6267, lng: 122.9794, kend: 38450, tung: 24890, berat: 9420, kategori: "Berat (>10 Tahun)", color: "#EF4444" },
+  { kab_kota: "KABUPATEN GORONTALO", kecamatan: "TELAGA BIRU", kelurahan: "Tuladenggi, Ulapato A, Lupoyo, Pantungo", lat: 0.5940, lng: 123.0280, kend: 26120, tung: 16940, berat: 6320, kategori: "Berat (>10 Tahun)", color: "#EF4444" },
+  { kab_kota: "KABUPATEN GORONTALO", kecamatan: "TIBAWA", kelurahan: "Isimu Selatan, Isimu Utara, Datahu", lat: 0.6590, lng: 122.8610, kend: 24310, tung: 15820, berat: 5840, kategori: "Sedang (5 Tahun)", color: "#F59E0B" },
+  { kab_kota: "KABUPATEN BONE BOLANGO", kecamatan: "SUWAWA", kelurahan: "Boludawa, Bubeya, Tingkohubu", lat: 0.5644, lng: 123.1869, kend: 19420, tung: 11850, berat: 3920, kategori: "Sedang (5 Tahun)", color: "#F59E0B" },
+  { kab_kota: "KABUPATEN BONE BOLANGO", kecamatan: "KABILA", kelurahan: "Oluhuta, Pauwo, Tumbihe, Poowo", lat: 0.5535, lng: 123.0985, kend: 21840, tung: 13120, berat: 4410, kategori: "Sedang (5 Tahun)", color: "#F59E0B" },
+  { kab_kota: "KABUPATEN POHUWATO", kecamatan: "MARISA", kelurahan: "Marisa Selatan, Marisa Utara, Pohuwato", lat: 0.4569, lng: 121.9461, kend: 23410, tung: 16890, berat: 6420, kategori: "Berat (>10 Tahun)", color: "#EF4444" },
+  { kab_kota: "KABUPATEN BOALEMO", kecamatan: "TILAMUTA", kelurahan: "Modelomo, Hungayonaa, Piloliyanga", lat: 0.5186, lng: 122.3364, kend: 20120, tung: 14210, berat: 4980, kategori: "Sedang (5 Tahun)", color: "#10B981" },
+  { kab_kota: "KABUPATEN GORONTALO UTARA", kecamatan: "KWANDANG", kelurahan: "Titidu, Molingkapoto, Cisadane", lat: 0.8358, lng: 122.9056, kend: 15890, tung: 10920, berat: 3420, kategori: "Ringan (1 Tahun)", color: "#10B981" }
+];
+
+let leafletMapInstance = null;
+let leafletMarkersGroup = null;
+
+let appState = {
+  currentUser: null,
+  loginRoleTab: 'admin',
+  activeMenu: 'dashboard',
+  searchQuery: '',
+  selectedWilayahFilter: 'SEMUA',
+  selectedGeoWilayah: 'KABUPATEN GORONTALO',
+  geoLayerMode: 'provinsi',
+
+  config: {
+    adminUsername: "admin",
+    adminPassword: "bapenda2026",
+    targetPKB: 98334586103,
+    targetBBNKB: 77815196970,
+    kepatuhanProvinsi: 44.67,
+    bobotOptimalisasi: 10,
+    nilaiRataUnit: 1000000,
+    disBaseUrl: ""
+  },
+
+  rekapWilayah: [],
+  dataKendaraan: [],
+  dataTunggakan: [],
+  realisasiBulanan: [],
+  disLogs: [],
+  usersPetugas: []
+};
+
+// ============================================================================
+// 4. DATA PREVIEW (HANYA AKTIF JIKA IS_PREVIEW === true)
+// ============================================================================
+function getInitialPreviewData() {
+  if (!IS_PREVIEW) return null;
+
+  return {
+    config: {
+      adminUsername: "admin",
+      adminPassword: "bapenda2026",
+      targetPKB: 98334586103,
+      targetBBNKB: 77815196970,
+      kepatuhanProvinsi: 44.67,
+      bobotOptimalisasi: 10,
+      nilaiRataUnit: 1000000,
+      disBaseUrl: window.location.origin + window.location.pathname
+    },
+    rekapWilayah: [
+      {
+        id: "wil-1",
+        kab_kota: "KOTA GORONTALO",
+        kend_r2: 133867, kend_r4: 25951, kend_total: 159818,
+        tung_r2: 89381, tung_r4: 17036, tung_total: 106417,
+        berat_10thn: 27700, sedang_5thn: 42567, ringan_1thn: 36150,
+        r4_sudah: 14113, r4_belum: 11102, r4_lama: 25215, r4_baru: 745, r4_objek: 25960, r4_patuh: 55.97,
+        r2_sudah: 38934, r2_belum: 89603, r2_lama: 128537, r2_baru: 5482, r2_objek: 134019, r2_patuh: 30.29,
+        sub_sudah: 53047, sub_belum: 100705, sub_lama: 153752, sub_baru: 6227, sub_objek: 159979, kepatuhan: 34.50,
+        prioritas_utama: true
+      },
+      {
+        id: "wil-2",
+        kab_kota: "KABUPATEN GORONTALO",
+        kend_r2: 177286, kend_r4: 23191, kend_total: 200477,
+        tung_r2: 110978, tung_r4: 14764, tung_total: 125742,
+        berat_10thn: 34525, sedang_5thn: 47782, ringan_1thn: 43435,
+        r4_sudah: 11966, r4_belum: 9317, r4_lama: 21283, r4_baru: 1889, r4_objek: 23172, r4_patuh: 56.22,
+        r2_sudah: 52237, r2_belum: 107415, r2_lama: 159652, r2_baru: 17648, r2_objek: 177300, r2_patuh: 32.72,
+        sub_sudah: 64203, sub_belum: 116732, sub_lama: 180935, sub_baru: 19537, sub_objek: 200472, kepatuhan: 35.48,
+        prioritas_utama: true
+      },
+      {
+        id: "wil-3",
+        kab_kota: "KABUPATEN BONE BOLANGO",
+        kend_r2: 70496, kend_r4: 7656, kend_total: 78152,
+        tung_r2: 42099, tung_r4: 4470, tung_total: 46569,
+        berat_10thn: 10971, sedang_5thn: 18628, ringan_1thn: 16970,
+        r4_sudah: 4393, r4_belum: 2777, r4_lama: 7170, r4_baru: 483, r4_objek: 7653, r4_patuh: 61.27,
+        r2_sudah: 25985, r2_belum: 39674, r2_lama: 65660, r2_baru: 4787, r2_objek: 70447, r2_patuh: 39.58,
+        sub_sudah: 30378, sub_belum: 42451, sub_lama: 72830, sub_baru: 5270, sub_objek: 78100, kepatuhan: 41.71,
+        prioritas_utama: false
+      },
+      {
+        id: "wil-4",
+        kab_kota: "KABUPATEN BOALEMO",
+        kend_r2: 56015, kend_r4: 5556, kend_total: 61571,
+        tung_r2: 38672, tung_r4: 3835, tung_total: 42507,
+        berat_10thn: 10998, sedang_5thn: 17003, ringan_1thn: 14506,
+        r4_sudah: 2928, r4_belum: 2213, r4_lama: 5141, r4_baru: 415, r4_objek: 5556, r4_patuh: 56.95,
+        r2_sudah: 14546, r2_belum: 35925, r2_lama: 50471, r2_baru: 5516, r2_objek: 55987, r2_patuh: 28.82,
+        sub_sudah: 17474, sub_belum: 38138, sub_lama: 55612, sub_baru: 5931, sub_objek: 61543, kepatuhan: 31.42,
+        prioritas_utama: true
+      },
+      {
+        id: "wil-5",
+        kab_kota: "KABUPATEN POHUWATO",
+        kend_r2: 70062, kend_r4: 8652, kend_total: 78714,
+        tung_r2: 46713, tung_r4: 5918, tung_total: 52631,
+        berat_10thn: 13999, sedang_5thn: 19474, ringan_1thn: 19158,
+        r4_sudah: 4412, r4_belum: 3273, r4_lama: 7685, r4_baru: 967, r4_objek: 8652, r4_patuh: 57.41,
+        r2_sudah: 14657, r2_belum: 48293, r2_lama: 62950, r2_baru: 7053, r2_objek: 70003, r2_patuh: 23.28,
+        sub_sudah: 19069, sub_belum: 51566, sub_lama: 70635, sub_baru: 8020, sub_objek: 78655, kepatuhan: 27.00,
+        prioritas_utama: true
+      },
+      {
+        id: "wil-6",
+        kab_kota: "KABUPATEN GORONTALO UTARA",
+        kend_r2: 35559, kend_r4: 5523, kend_total: 41082,
+        tung_r2: 24654, tung_r4: 3814, tung_total: 28468,
+        berat_10thn: 6540, sedang_5thn: 11387, ringan_1thn: 10541,
+        r4_sudah: 2906, r4_belum: 2314, r4_lama: 5220, r4_baru: 301, r4_objek: 5521, r4_patuh: 55.67,
+        r2_sudah: 10483, r2_belum: 21649, r2_lama: 32132, r2_baru: 3411, r2_objek: 35543, r2_patuh: 32.62,
+        sub_sudah: 13389, sub_belum: 23963, sub_lama: 37352, sub_baru: 3712, sub_objek: 41064, kepatuhan: 35.85,
+        prioritas_utama: false
+      }
+    ],
+    dataKendaraan: [
+      { id: "kend-1", kab_kota: "KOTA GORONTALO", kecamatan: "KOTA SELATAN", desa_kelurahan: "LIMBA U DUA", r2: 133867, r4: 25951, total: 159818 },
+      { id: "kend-2", kab_kota: "KABUPATEN GORONTALO", kecamatan: "LIMBOTO", desa_kelurahan: "KAYUBULAN", r2: 177286, r4: 23191, total: 200477 }
+    ],
+    dataTunggakan: [
+      { id: "tung-1", kab_kota: "KABUPATEN GORONTALO", kecamatan: "LIMBOTO", desa_kelurahan: "KAYUBULAN", r2: 110978, r4: 14764, total: 125742, berat_10thn: 34525, sedang_5thn: 47782, ringan_1thn: 43435, prioritas_utama: true },
+      { id: "tung-2", kab_kota: "KOTA GORONTALO", kecamatan: "KOTA SELATAN", desa_kelurahan: "LIMBA U DUA", r2: 89381, r4: 17036, total: 106417, berat_10thn: 27700, sedang_5thn: 42567, ringan_1thn: 36150, prioritas_utama: true }
+    ],
+    realisasiBulanan: [
+      { no: 1, bulan: "Januari", pkb: 8000604740, bbnkb: 10918851320 },
+      { no: 2, bulan: "Februari", pkb: 7487933711, bbnkb: 9118338923 },
+      { no: 3, bulan: "Maret", pkb: 6782666062, bbnkb: 6156336000 },
+      { no: 4, bulan: "April", pkb: 8311900665, bbnkb: 11424637800 },
+      { no: 5, bulan: "Mei", pkb: 7263014957, bbnkb: 9157190000 },
+      { no: 6, bulan: "Juni", pkb: 9888056680, bbnkb: 13023237075 },
+      { no: 7, bulan: "Juli", pkb: 8481237921, bbnkb: 12432698250 },
+      { no: 8, bulan: "Agustus", pkb: 10677200578, bbnkb: 9314971583 },
+      { no: 9, bulan: "September", pkb: 8117757898, bbnkb: 11048532694 },
+      { no: 10, bulan: "Oktober", pkb: 6553918917, bbnkb: 7570760000 },
+      { no: 11, bulan: "November", pkb: 0, bbnkb: 0 },
+      { no: 12, bulan: "Desember", pkb: 0, bbnkb: 0 }
+    ],
+    disLogs: [
+      { id: "DIS-2026-001", timestamp: "2026-10-26 10:15", kab_kota: "KABUPATEN GORONTALO", kecamatan: "LIMBOTO", desa_kelurahan: "KAYUBULAN", nopol: "DM 2481 B", jenis: "R2", kategori: "Berat (>10 Tahun)", nominal: 1450000, status: "Janji Bayar Samsat", petugas: "Tim DIS Limboto" },
+      { id: "DIS-2026-002", timestamp: "2026-10-26 11:30", kab_kota: "KOTA GORONTALO", kecamatan: "KOTA SELATAN", desa_kelurahan: "LIMBA U DUA", nopol: "DM 1092 A", jenis: "R4", kategori: "Sedang (5 Tahun)", nominal: 4850000, status: "Lunas ditempat (QRIS)", petugas: "Tim DIS Kota" }
+    ],
+    usersPetugas: [
+      { id: "usr-1", username: "petugas_kota", password: "dis2026", nama_lengkap: "Rahmat Hidayat (DIS Kota)", wilayah_samsat: "KOTA GORONTALO", role: "petugas_dis" }
+    ]
+  };
+}
+
+// ============================================================================
+// 5. KONEKSI FIREBASE & SMART HYBRID AUTH (MENDUKUNG BLOGGER 100%)
+// ============================================================================
+let fbApp = null;
+let fbAuth = null;
+let fbDb = null;
+
+function isFirebaseConfigReady() {
+  if (!firebaseConfig || !firebaseConfig.apiKey) return false;
+  if (firebaseConfig.apiKey === "API_KEY_ANDA" || firebaseConfig.projectId === "PROJECT_ID") return false;
+  return true;
+}
+
+function formatAdminEmail(inputStr) {
+  const clean = String(inputStr || "").trim().toLowerCase();
+  if (clean.indexOf("@") !== -1) return clean;
+  return clean + "@bapenda-gorontalo.app";
+}
+
+async function initApplication() {
+  if (IS_PREVIEW) {
+    document.getElementById('preview-login-badge')?.classList.remove('hidden');
+    document.getElementById('badge-preview-topbar')?.classList.remove('hidden');
+    document.getElementById('input-login-id').value = "admin";
+    document.getElementById('input-login-password').value = "bapenda2026";
+
+    const savedData = await idbGet("preview_state_data");
+    if (savedData) {
+      appState.config = { ...appState.config, ...savedData.config };
+      appState.rekapWilayah = savedData.rekapWilayah;
+      appState.dataKendaraan = savedData.dataKendaraan;
+      appState.dataTunggakan = savedData.dataTunggakan;
+      appState.realisasiBulanan = savedData.realisasiBulanan;
+      appState.disLogs = savedData.disLogs;
+      appState.usersPetugas = savedData.usersPetugas;
+    } else {
+      const initial = getInitialPreviewData();
+      appState.config = initial.config;
+      appState.rekapWilayah = initial.rekapWilayah;
+      appState.dataKendaraan = initial.dataKendaraan;
+      appState.dataTunggakan = initial.dataTunggakan;
+      appState.realisasiBulanan = initial.realisasiBulanan;
+      appState.disLogs = initial.disLogs;
+      appState.usersPetugas = initial.usersPetugas;
+      await saveStateToStorage();
+    }
+
+    await checkIncomingDISUrlParams();
+
+    const savedSession = await idbGet("active_user_session");
+    if (savedSession) {
+      appState.currentUser = savedSession;
+      showMainDashboard();
+    } else {
+      showLoginScreen();
+    }
+  } else {
+    if (!isFirebaseConfigReady()) {
+      showLoginScreen();
+      showLoginError("PERHATIAN: Anda telah mengubah IS_PREVIEW = false, namun firebaseConfig masih berisi 'API_KEY_ANDA'. Silakan isi firebaseConfig proyek Firebase Anda, atau kembalikan IS_PREVIEW = true jika ingin langsung menggunakan aplikasi di Blogger tanpa setup Firebase.");
+      return;
+    }
+
+    try {
+      fbApp = initializeApp(firebaseConfig);
+      fbAuth = getAuth(fbApp);
+      fbDb = getFirestore(fbApp);
+      try {
+        await setPersistence(fbAuth, browserLocalPersistence);
+      } catch (e) {}
+
+      try {
+        const cfgSnap = await getDoc(doc(fbDb, "settings_config", "main_config"));
+        if (cfgSnap.exists()) {
+          appState.config = { ...appState.config, ...cfgSnap.data() };
+        }
+      } catch (e) {}
+
+      const savedAdminSession = await idbGet("prod_admin_session");
+      const savedPetugasSession = await idbGet("prod_petugas_session");
+
+      onAuthStateChanged(fbAuth, async function(user) {
+        if (user && savedAdminSession) {
+          appState.currentUser = savedAdminSession;
+          await subscribeProductionFirestore();
+          await checkIncomingDISUrlParams();
+          showMainDashboard();
+        } else if (savedAdminSession) {
+          appState.currentUser = savedAdminSession;
+          await subscribeProductionFirestore();
+          await checkIncomingDISUrlParams();
+          showMainDashboard();
+        } else if (savedPetugasSession) {
+          appState.currentUser = savedPetugasSession;
+          await subscribeProductionFirestore();
+          await checkIncomingDISUrlParams();
+          showMainDashboard();
+        } else {
+          showLoginScreen();
+        }
+      });
+    } catch (err) {
+      showLoginScreen();
+      showLoginError("Gagal menghubungkan ke Firebase: " + (err.message || "Periksa firebaseConfig Anda."));
+    }
+  }
+}
+
+async function saveStateToStorage() {
+  if (IS_PREVIEW) {
+    await idbSet("preview_state_data", {
+      config: appState.config,
+      rekapWilayah: appState.rekapWilayah,
+      dataKendaraan: appState.dataKendaraan,
+      dataTunggakan: appState.dataTunggakan,
+      realisasiBulanan: appState.realisasiBulanan,
+      disLogs: appState.disLogs,
+      usersPetugas: appState.usersPetugas
+    });
+  } else if (fbDb) {
+    try {
+      await setDoc(doc(fbDb, "settings_config", "main_config"), appState.config, { merge: true });
+    } catch (e) {
+      console.error("Gagal menyimpan konfigurasi ke Firestore:", e);
+    }
+  }
+  updateSidebarLiveIndicators();
+}
+
+async function subscribeProductionFirestore() {
+  if (IS_PREVIEW || !fbDb) return;
+
+  onSnapshot(doc(fbDb, "settings_config", "main_config"), function(snap) {
+    if (snap.exists()) {
+      appState.config = { ...appState.config, ...snap.data() };
+      updateSidebarLiveIndicators();
+      renderCurrentMenu();
+    }
+  }, function() {});
+
+  onSnapshot(collection(fbDb, "kepatuhan_wilayah"), function(snap) {
+    appState.rekapWilayah = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+    updateSidebarLiveIndicators();
+    renderCurrentMenu();
+  }, function() {});
+
+  onSnapshot(collection(fbDb, "data_kendaraan"), function(snap) {
+    appState.dataKendaraan = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+    renderCurrentMenu();
+  }, function() {});
+
+  onSnapshot(collection(fbDb, "data_tunggakan"), function(snap) {
+    appState.dataTunggakan = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+    renderCurrentMenu();
+  }, function() {});
+
+  onSnapshot(collection(fbDb, "realisasi_bulanan"), function(snap) {
+    const rows = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+    rows.sort(function(a, b) { return Number(a.no) - Number(b.no); });
+    appState.realisasiBulanan = rows;
+    updateSidebarLiveIndicators();
+    renderCurrentMenu();
+  }, function() {});
+
+  onSnapshot(collection(fbDb, "integrasi_dis_logs"), function(snap) {
+    appState.disLogs = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+    renderCurrentMenu();
+  }, function() {});
+
+  onSnapshot(collection(fbDb, "users_petugas"), function(snap) {
+    appState.usersPetugas = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+    renderCurrentMenu();
+  }, function() {});
+}
+
+// ============================================================================
+// 6. TANGKAPAN OTOMATIS URL INTEGRASI DOOR-TO-DOOR SAMSAT (DIS) DIGITAL
+// ============================================================================
+async function checkIncomingDISUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("dis_sync") === "1") {
+    const newEntry = {
+      id: "DIS-" + Date.now().toString().slice(-6),
+      timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
+      kab_kota: (params.get("kab") || "KOTA GORONTALO").toUpperCase(),
+      kecamatan: (params.get("kec") || "KOTA SELATAN").toUpperCase(),
+      desa_kelurahan: (params.get("desa") || "-").toUpperCase(),
+      nopol: (params.get("nopol") || "DM 0000 XX").toUpperCase(),
+      jenis: (params.get("jenis") || "R2").toUpperCase(),
+      kategori: params.get("kategori") || "Berat (>10 Tahun)",
+      nominal: Number(params.get("nominal") || 1250000),
+      status: params.get("status") || "Terekam via URL DIS Digital",
+      petugas: params.get("petugas") || "Integrasi Sistem DIS"
+    };
+
+    if (IS_PREVIEW) {
+      appState.disLogs.unshift(newEntry);
+      await saveStateToStorage();
+    } else if (fbDb) {
+      try {
+        await addDoc(collection(fbDb, "integrasi_dis_logs"), newEntry);
+      } catch (e) {}
+    }
+
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+    showToast("Data kunjungan dari URL Aplikasi Door-To-Door Samsat (DIS) Digital berhasil direkam otomatis!", "success");
+  }
+}
+
+// ============================================================================
+// 7. UTILITAS FORMAT ANGKA & RUPIAH
+// ============================================================================
+function fmtNum(n) {
+  return Number(n || 0).toLocaleString('id-ID');
+}
+
+function fmtRp(n) {
+  return "Rp " + Math.round(Number(n || 0)).toLocaleString('id-ID');
+}
+
+function fmtRpShort(n) {
+  const val = Number(n || 0);
+  if (val >= 1e9) return "Rp " + (val / 1e9).toFixed(2).replace('.', ',') + " M";
+  if (val >= 1e6) return "Rp " + (val / 1e6).toFixed(2).replace('.', ',') + " Jt";
+  return fmtRp(val);
+}
+
+function fmtMiliarText(n) {
+  const val = Number(n || 0);
+  if (val >= 1e9) return "Rp " + (val / 1e9).toFixed(2).replace('.', ',') + " Miliar";
+  return fmtRp(val);
+}
+
+function fmtPct(n) {
+  return Number(n || 0).toFixed(2).replace('.', ',') + "%";
+}
+
+function showToast(message, type = "info") {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const colors = {
+    success: "bg-emerald-600 text-white border-emerald-500",
+    danger: "bg-red-600 text-white border-red-500",
+    warning: "bg-amber-500 text-white border-amber-400",
+    info: "bg-navy-900 text-white border-blue-500"
+  };
+  const icons = {
+    success: "fa-circle-check",
+    danger: "fa-circle-exclamation",
+    warning: "fa-triangle-exclamation",
+    info: "fa-bell"
+  };
+  const toast = document.createElement("div");
+  toast.className = "pointer-events-auto flex items-center gap-3 p-3.5 rounded-xl shadow-xl border " + (colors[type] || colors.info) + " text-xs font-semibold transition-all duration-300";
+  toast.innerHTML = '<i class="fa-solid ' + (icons[type] || icons.info) + ' text-base shrink-0"></i><div class="flex-1 leading-relaxed">' + message + '</div>';
+  container.appendChild(toast);
+  setTimeout(function() {
+    toast.classList.add("opacity-0", "translate-x-4");
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 3800);
+}
+
+// ============================================================================
+// 8. KALKULASI AGREGAT REAL-TIME DASHBOARD
+//    (Potensi 10% dari Jumlah Unit per Kategori x Nilai Rata Rp 1.000.000)
+// ============================================================================
+function getDashboardAggregates() {
+  const rekap = appState.rekapWilayah || [];
+  let totalKendR2 = 0, totalKendR4 = 0, totalKend = 0;
+  let totalTungR2 = 0, totalTungR4 = 0, totalTung = 0;
+  let totalBerat = 0, totalSedang = 0, totalRingan = 0;
+  let totalSudahPenul = 0, totalBelumPenul = 0, totalObjekLama = 0, totalObjekBaru = 0, totalObjekPajak = 0;
+
+  rekap.forEach(function(w) {
+    totalKendR2 += Number(w.kend_r2 || 0);
+    totalKendR4 += Number(w.kend_r4 || 0);
+    totalKend += Number(w.kend_total || (Number(w.kend_r2 || 0) + Number(w.kend_r4 || 0)));
+
+    totalTungR2 += Number(w.tung_r2 || 0);
+    totalTungR4 += Number(w.tung_r4 || 0);
+    totalTung += Number(w.tung_total || (Number(w.tung_r2 || 0) + Number(w.tung_r4 || 0)));
+
+    totalBerat += Number(w.berat_10thn || 0);
+    totalSedang += Number(w.sedang_5thn || 0);
+    totalRingan += Number(w.ringan_1thn || 0);
+
+    totalSudahPenul += Number(w.sub_sudah || 0);
+    totalBelumPenul += Number(w.sub_belum || 0);
+    totalObjekLama += Number(w.sub_lama || 0);
+    totalObjekBaru += Number(w.sub_baru || 0);
+    totalObjekPajak += Number(w.sub_objek || 0);
+  });
+
+  let realisasiPKB = 0, realisasiBBNKB = 0;
+  (appState.realisasiBulanan || []).forEach(function(b) {
+    realisasiPKB += Number(b.pkb || 0);
+    realisasiBBNKB += Number(b.bbnkb || 0);
+  });
+
+  const targetPKB = Number(appState.config.targetPKB || 98334586103);
+  const targetBBNKB = Number(appState.config.targetBBNKB || 77815196970);
+  const totalTargetPAD = targetPKB + targetBBNKB;
+  const totalRealisasiPAD = realisasiPKB + realisasiBBNKB;
+
+  const pctPKB = targetPKB > 0 ? (realisasiPKB / targetPKB) * 100 : 0;
+  const pctBBNKB = targetBBNKB > 0 ? (realisasiBBNKB / targetBBNKB) * 100 : 0;
+
+  // Rumus Baru: Potensi 10% dari Jumlah Unit per Kategori x Nilai Rata-Rata Rp 1.000.000 / Unit
+  const bobotPct = Number(appState.config.bobotOptimalisasi || 10);
+  const bobotOpt = bobotPct / 100;
+  const nilaiRataUnit = Number(appState.config.nilaiRataUnit || 1000000);
+
+  const unitOptBerat = totalBerat * bobotOpt;
+  const unitOptSedang = totalSedang * bobotOpt;
+  const unitOptRingan = totalRingan * bobotOpt;
+  const unitOptTotal = totalTung * bobotOpt;
+
+  const potensiBeratRp = unitOptBerat * nilaiRataUnit;
+  const potensiSedangRp = unitOptSedang * nilaiRataUnit;
+  const potensiRinganRp = unitOptRingan * nilaiRataUnit;
+  const potensiPAD10 = potensiBeratRp + potensiSedangRp + potensiRinganRp;
+
+  const propBerat = totalTung > 0 ? totalBerat / totalTung : 0.26;
+  const propSedang = totalTung > 0 ? totalSedang / totalTung : 0.39;
+  const propRingan = totalTung > 0 ? totalRingan / totalTung : 0.35;
+
+  const kepatuhanProv = Number(appState.config.kepatuhanProvinsi || 44.67);
+  const kepatuhanSimulasi = Math.min(100, kepatuhanProv + (kepatuhanProv * bobotOpt));
+  const proyeksiKepatuhanAbsolut = Math.min(100, kepatuhanProv + bobotPct);
+
+  return {
+    totalKendR2, totalKendR4, totalKend,
+    totalTungR2, totalTungR4, totalTung,
+    totalBerat, totalSedang, totalRingan,
+    totalSudahPenul, totalBelumPenul, totalObjekLama, totalObjekBaru, totalObjekPajak,
+    targetPKB, targetBBNKB, totalTargetPAD,
+    realisasiPKB, realisasiBBNKB, totalRealisasiPAD,
+    pctPKB, pctBBNKB,
+    nilaiRataUnit, unitOptBerat, unitOptSedang, unitOptRingan, unitOptTotal,
+    potensiPAD10, potensiBeratRp, potensiSedangRp, potensiRinganRp,
+    propBerat, propSedang, propRingan,
+    kepatuhanProv, kepatuhanSimulasi, proyeksiKepatuhanAbsolut
+  };
+}
+
+function updateSidebarLiveIndicators() {
+  const agg = getDashboardAggregates();
+  const elPatuh = document.getElementById("sidebar-live-kepatuhan");
+  const elPkb = document.getElementById("sidebar-live-pkb");
+  const elPkbPct = document.getElementById("sidebar-live-pkb-pct");
+  const elBbnkb = document.getElementById("sidebar-live-bbnkb");
+  const elBbnkbPct = document.getElementById("sidebar-live-bbnkb-pct");
+  const notifBadge = document.getElementById("notif-count-badge");
+
+  if (elPatuh) elPatuh.textContent = fmtPct(agg.kepatuhanProv);
+  if (elPkb) elPkb.textContent = fmtRpShort(agg.realisasiPKB);
+  if (elPkbPct) elPkbPct.textContent = "▲ " + fmtPct(agg.pctPKB);
+  if (elBbnkb) elBbnkb.textContent = fmtRpShort(agg.realisasiBBNKB);
+  if (elBbnkbPct) elBbnkbPct.textContent = "▲ " + fmtPct(agg.pctBBNKB);
+
+  const prioritasCount = (appState.rekapWilayah || []).filter(function(w) { return w.prioritas_utama; }).length;
+  if (notifBadge) notifBadge.textContent = prioritasCount;
+}
+
+// ============================================================================
+// 9. AUTENTIKASI, NAVIGASI, & EVENT LISTENERS UTAMA
+// ============================================================================
+function showLoginError(msg) {
+  const errBox = document.getElementById("login-error-box");
+  if (!errBox) return;
+  errBox.textContent = msg;
+  errBox.classList.remove("hidden");
+}
+
+function hideLoginError() {
+  const errBox = document.getElementById("login-error-box");
+  if (errBox) errBox.classList.add("hidden");
+}
+
+function showLoginScreen() {
+  const loginEl = document.getElementById("login-screen");
+  if (loginEl) loginEl.classList.remove("hidden");
+  setupLoginEvents();
+}
+
+function showMainDashboard() {
+  const loginEl = document.getElementById("login-screen");
+  if (loginEl) loginEl.classList.add("hidden");
+
+  const userNameEl = document.getElementById("topbar-user-name");
+  const userBranchEl = document.getElementById("topbar-user-branch");
+  if (userNameEl && appState.currentUser) {
+    userNameEl.textContent = appState.currentUser.displayName || appState.currentUser.username || "Admin";
+  }
+  if (userBranchEl && appState.currentUser) {
+    userBranchEl.textContent = appState.currentUser.wilayah || "Bapenda Provinsi";
+  }
+
+  renderNavigationMenus();
+  updateSidebarLiveIndicators();
+  renderCurrentMenu();
+  setupTopbarEvents();
+}
+
+let loginEventsBound = false;
+function setupLoginEvents() {
+  if (loginEventsBound) return;
+  loginEventsBound = true;
+
+  const tabAdmin = document.getElementById("tab-role-admin");
+  const tabPetugas = document.getElementById("tab-role-petugas");
+  const labelId = document.getElementById("label-login-id");
+  const inputId = document.getElementById("input-login-id");
+  const inputPass = document.getElementById("input-login-password");
+  const btnTogglePass = document.getElementById("btn-toggle-pass");
+  const loginForm = document.getElementById("login-form");
+
+  if (tabAdmin && tabPetugas) {
+    tabAdmin.onclick = function() {
+      appState.loginRoleTab = "admin";
+      tabAdmin.className = "py-2 px-3 rounded-lg text-xs font-bold transition-all bg-navy-900 text-white shadow-sm flex items-center justify-center gap-1.5";
+      tabPetugas.className = "py-2 px-3 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5";
+      if (labelId) labelId.textContent = "Username / Email Admin";
+      if (inputId) inputId.placeholder = "Ketik admin atau email";
+      if (IS_PREVIEW) {
+        inputId.value = appState.config.adminUsername || "admin";
+        inputPass.value = appState.config.adminPassword || "bapenda2026";
+      }
+      hideLoginError();
+    };
+
+    tabPetugas.onclick = function() {
+      appState.loginRoleTab = "petugas";
+      tabPetugas.className = "py-2 px-3 rounded-lg text-xs font-bold transition-all bg-navy-900 text-white shadow-sm flex items-center justify-center gap-1.5";
+      tabAdmin.className = "py-2 px-3 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5";
+      if (labelId) labelId.textContent = "Username Operator / Petugas DIS";
+      if (inputId) inputId.placeholder = "Contoh: petugas_kota";
+      if (IS_PREVIEW) {
+        inputId.value = "petugas_kota";
+        inputPass.value = "dis2026";
+      }
+      hideLoginError();
+    };
+  }
+
+  if (btnTogglePass && inputPass) {
+    btnTogglePass.onclick = function() {
+      inputPass.type = inputPass.type === "password" ? "text" : "password";
+    };
+  }
+
+  if (loginForm) {
+    loginForm.onsubmit = async function(e) {
+      e.preventDefault();
+      hideLoginError();
+      const rawId = (inputId.value || "").trim();
+      const rawPass = (inputPass.value || "").trim();
+
+      if (IS_PREVIEW) {
+        if (appState.loginRoleTab === "admin") {
+          const validUser = (appState.config.adminUsername || "admin").toLowerCase();
+          const validPass = appState.config.adminPassword || "bapenda2026";
+          if ((rawId.toLowerCase() === validUser || rawId.toLowerCase() === "admin@bapenda.gorontaloprov.go.id") && rawPass === validPass) {
+            const session = { role: "admin", username: rawId, displayName: "Admin Pengendalian", wilayah: "Bapenda Provinsi" };
+            appState.currentUser = session;
+            await idbSet("active_user_session", session);
+            showMainDashboard();
+            showToast("Selamat datang di Dashboard Pengendalian & Evaluasi Bapenda Provinsi Gorontalo!", "success");
+          } else {
+            showLoginError("Username atau Password Admin tidak sesuai! Gunakan '" + (appState.config.adminUsername || "admin") + "' & password '" + validPass + "'.");
+          }
+        } else {
+          const found = (appState.usersPetugas || []).find(function(u) {
+            return u.username.toLowerCase() === rawId.toLowerCase() && u.password === rawPass;
+          });
+          if (found) {
+            const session = { role: "petugas", username: found.username, displayName: found.nama_lengkap, wilayah: found.wilayah_samsat };
+            appState.currentUser = session;
+            await idbSet("active_user_session", session);
+            showMainDashboard();
+            showToast("Berhasil masuk sebagai " + found.nama_lengkap, "success");
+          } else {
+            showLoginError("Kredensial Operator / Petugas DIS tidak ditemukan!");
+          }
+        }
+        return;
+      }
+
+      if (appState.loginRoleTab === "admin") {
+        const expectedUser = (appState.config.adminUsername || "admin").toLowerCase();
+        const expectedPass = appState.config.adminPassword || "bapenda2026";
+        const emailFormatted = formatAdminEmail(rawId);
+
+        try {
+          await signInWithEmailAndPassword(fbAuth, emailFormatted, rawPass);
+          const session = { role: "admin", username: rawId, displayName: "Admin Bapenda", wilayah: "Bapenda Provinsi" };
+          appState.currentUser = session;
+          await idbSet("prod_admin_session", session);
+          await subscribeProductionFirestore();
+          showMainDashboard();
+          showToast("Login Admin Firebase berhasil!", "success");
+        } catch (authErr) {
+          if ((rawId.toLowerCase() === expectedUser || rawId.toLowerCase() === "admin") && rawPass === expectedPass) {
+            try {
+              await createUserWithEmailAndPassword(fbAuth, emailFormatted, rawPass);
+            } catch (createErr) {
+              try { await signInAnonymously(fbAuth); } catch (anonErr) {}
+            }
+            const session = { role: "admin", username: rawId, displayName: "Admin Bapenda", wilayah: "Bapenda Provinsi" };
+            appState.currentUser = session;
+            await idbSet("prod_admin_session", session);
+            await subscribeProductionFirestore();
+            showMainDashboard();
+            showToast("Akun Admin Bapenda berhasil diaktifkan dan masuk!", "success");
+          } else {
+            showLoginError("Gagal autentikasi Admin: Pastikan Username ('" + expectedUser + "') & Password ('" + expectedPass + "') benar.");
+          }
+        }
+      } else {
+        try {
+          const snap = await getDocs(collection(fbDb, "users_petugas"));
+          const list = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+          const found = list.find(function(u) {
+            return String(u.username || "").toLowerCase() === rawId.toLowerCase() && String(u.password || "") === rawPass;
+          });
+          if (found) {
+            const session = { role: "petugas", username: found.username, displayName: found.nama_lengkap, wilayah: found.wilayah_samsat };
+            appState.currentUser = session;
+            await idbSet("prod_petugas_session", session);
+            await subscribeProductionFirestore();
+            showMainDashboard();
+            showToast("Berhasil masuk sebagai " + found.nama_lengkap, "success");
+          } else {
+            showLoginError("Akun Operator/Petugas tidak ditemukan di database Firestore.");
+          }
+        } catch (err) {
+          showLoginError("Gagal memvalidasi petugas: " + err.message);
+        }
+      }
+    };
+  }
+}
+
+let topbarEventsBound = false;
+function setupTopbarEvents() {
+  if (topbarEventsBound) return;
+  topbarEventsBound = true;
+
+  const searchInput = document.getElementById("global-search-input");
+  if (searchInput) {
+    searchInput.oninput = function(e) {
+      appState.searchQuery = (e.target.value || "").trim().toUpperCase();
+      renderCurrentMenu();
+    };
+  }
+
+  const btnNotif = document.getElementById("btn-notif-prioritas");
+  if (btnNotif) {
+    btnNotif.onclick = function() {
+      switchMenu("geospasial");
+      showToast("Menampilkan wilayah dengan prioritas penanganan utama (Tunggakan ≥ 10 Tahun)", "info");
+    };
+  }
+
+  const btnSettings = document.getElementById("btn-quick-settings");
+  if (btnSettings) {
+    btnSettings.onclick = function() {
+      switchMenu("pengaturan");
+    };
+  }
+
+  const btnFullscreen = document.getElementById("btn-fullscreen");
+  if (btnFullscreen) {
+    btnFullscreen.onclick = function() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(function() {});
+      } else {
+        document.exitFullscreen().catch(function() {});
+      }
+    };
+  }
+}
+
+async function handleLogout() {
+  appState.currentUser = null;
+  await idbDelete("active_user_session");
+  await idbDelete("prod_admin_session");
+  await idbDelete("prod_petugas_session");
+  if (!IS_PREVIEW && fbAuth) {
+    try { await signOut(fbAuth); } catch (e) {}
+  }
+  showLoginScreen();
+  showToast("Anda telah keluar dari sesi aplikasi.", "info");
+}
+
+function renderNavigationMenus() {
+  const desktopNav = document.getElementById("desktop-sidebar-nav");
+  const mobileNav = document.getElementById("mobile-bottom-nav");
+
+  if (desktopNav) {
+    desktopNav.innerHTML = MENU_ITEMS.map(function(m) {
+      const isActive = appState.activeMenu === m.id;
+      return `
+        <button type="button" data-menu-id="${m.id}" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+          isActive
+            ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+            : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+        }">
+          <span class="flex items-center gap-3">
+            <i class="${m.icon} w-4 text-center ${isActive ? 'text-white' : 'text-amber-400'}"></i>
+            <span>${m.label}</span>
+          </span>
+          <i class="fa-solid fa-chevron-right text-[10px] opacity-60"></i>
+        </button>
+      `;
+    }).join("") + `
+      <div class="pt-3 mt-3 border-t border-slate-800">
+        <button type="button" id="btn-sidebar-logout" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition">
+          <i class="fa-solid fa-power-off w-4 text-center"></i>
+          <span>Logout Keluar</span>
+        </button>
+      </div>
+    `;
+
+    desktopNav.querySelectorAll("[data-menu-id]").forEach(function(btn) {
+      btn.onclick = function() { switchMenu(btn.getAttribute("data-menu-id")); };
+    });
+    const logoutBtn = document.getElementById("btn-sidebar-logout");
+    if (logoutBtn) logoutBtn.onclick = handleLogout;
+  }
+
+  if (mobileNav) {
+    const mobileMenus = MENU_ITEMS.slice(0, 6);
+    mobileNav.innerHTML = mobileMenus.map(function(m) {
+      const isActive = appState.activeMenu === m.id;
+      return `
+        <button type="button" data-menu-id="${m.id}" class="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-[10px] font-bold transition ${
+          isActive ? 'text-amber-400' : 'text-slate-400 hover:text-white'
+        }">
+          <i class="${m.icon} text-sm mb-0.5"></i>
+          <span>${m.shortLabel}</span>
+        </button>
+      `;
+    }).join("");
+
+    mobileNav.querySelectorAll("[data-menu-id]").forEach(function(btn) {
+      btn.onclick = function() { switchMenu(btn.getAttribute("data-menu-id")); };
+    });
+  }
+}
+
+function switchMenu(menuId) {
+  appState.activeMenu = menuId;
+  renderNavigationMenus();
+  renderCurrentMenu();
+}
+
+function renderCurrentMenu() {
+  const container = document.getElementById("app-view-container");
+  if (!container) return;
+
+  switch (appState.activeMenu) {
+    case "dashboard":
+      renderDashboardView(container);
+      break;
+    case "kendaraan":
+      renderKendaraanView(container);
+      break;
+    case "tunggakan":
+      renderTunggakanView(container);
+      break;
+    case "geospasial":
+      renderGeospasialView(container);
+      break;
+    case "potensi_kepatuhan":
+      renderPotensiKepatuhanView(container);
+      break;
+    case "realisasi":
+      renderRealisasiView(container);
+      break;
+    case "integrasi_dis":
+      renderIntegrasiDISView(container);
+      break;
+    case "laporan_dss":
+      renderLaporanDSSView(container);
+      break;
+    case "pengaturan":
+      renderPengaturanView(container);
+      break;
+    default:
+      renderDashboardView(container);
+  }
+}
+
+// ============================================================================
+// VIEW 1: DASHBOARD EKSEKUTIF (SESUAI GAMBAR REFERENSI + RUMUS BARU POTENSI)
+// ============================================================================
+function renderDashboardView(container) {
+  const agg = getDashboardAggregates();
+  const rekap = appState.rekapWilayah || [];
+  const prioritasList = [...rekap].sort(function(a, b) { return b.berat_10thn - a.berat_10thn; });
+
+  // Data Line Chart SVG (Jan - Okt)
+  const sepuluhBulan = (appState.realisasiBulanan || []).slice(0, 10);
+  const maxLineVal = 15000000000;
+  const chartW = 460;
+  const chartH = 130;
+  const padL = 34;
+  const padR = 14;
+  const padT = 12;
+  const padB = 22;
+  const plotW = chartW - padL - padR;
+  const plotH = chartH - padT - padB;
+
+  const pkbPoints = sepuluhBulan.map(function(b, i) {
+    const x = padL + (i * (plotW / Math.max(1, sepuluhBulan.length - 1)));
+    const y = padT + plotH - (Math.min(maxLineVal, Number(b.pkb || 0)) / maxLineVal) * plotH;
+    return { x: x, y: y, label: b.bulan.slice(0, 3), val: b.pkb };
+  });
+
+  const bbnPoints = sepuluhBulan.map(function(b, i) {
+    const x = padL + (i * (plotW / Math.max(1, sepuluhBulan.length - 1)));
+    const y = padT + plotH - (Math.min(maxLineVal, Number(b.bbnkb || 0)) / maxLineVal) * plotH;
+    return { x: x, y: y, label: b.bulan.slice(0, 3), val: b.bbnkb };
+  });
+
+  const pkbPolyline = pkbPoints.map(function(p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ");
+  const bbnPolyline = bbnPoints.map(function(p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ");
+  const pkbArea = pkbPoints.length > 0
+    ? pkbPolyline + " " + pkbPoints[pkbPoints.length - 1].x.toFixed(1) + "," + (padT + plotH) + " " + pkbPoints[0].x.toFixed(1) + "," + (padT + plotH)
+    : "";
+
+  const pctBerat = Number((agg.propBerat * 100).toFixed(1));
+  const pctSedang = Number((agg.propSedang * 100).toFixed(1));
+  const pctRingan = Number((100 - pctBerat - pctSedang).toFixed(1));
+
+  const delapanBulan = (appState.realisasiBulanan || []).slice(0, 8);
+  const maxBarGabungan = 24000000000;
+
+  container.innerHTML = `
+    <div class="space-y-4">
+      <!-- BARIS 1: 6 KARTU KPI GRADIEN ATAS DENGAN SPARKLINE GELOMBANG PUTIH -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
+        <!-- Card 1: Total Kendaraan -->
+        <div onclick="window.gisSwitchMenu('kendaraan')" class="cursor-pointer rounded-2xl p-4 pb-3 bg-gradient-to-br from-indigo-500 via-indigo-600 to-violet-700 text-white shadow-md hover:shadow-lg transition relative overflow-hidden flex flex-col justify-between min-h-[126px]">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-[11px] font-semibold text-indigo-100">Total Kendaraan</div>
+              <div class="text-2xl font-extrabold tracking-tight mt-0.5">${fmtNum(agg.totalKend)}</div>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-car-side text-sm"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="text-[10px] font-semibold text-indigo-100 mb-1">▲ R2: ${fmtNum(agg.totalKendR2)} | R4: ${fmtNum(agg.totalKendR4)}</div>
+            <svg viewBox="0 0 160 26" class="w-full h-5 overflow-visible">
+              <path d="M 2 22 L 28 15 L 54 19 L 82 9 L 108 14 L 134 5 L 158 10" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 2: Realisasi PKB 2026 -->
+        <div onclick="window.gisSwitchMenu('realisasi')" class="cursor-pointer rounded-2xl p-4 pb-3 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md hover:shadow-lg transition relative overflow-hidden flex flex-col justify-between min-h-[126px]">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-[11px] font-semibold text-emerald-100">Realisasi PKB 2026</div>
+              <div class="text-2xl font-extrabold tracking-tight mt-0.5">${fmtRpShort(agg.realisasiPKB)}</div>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-chart-line text-sm"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="text-[10px] font-semibold text-emerald-100 mb-1">▲ ${fmtPct(agg.pctPKB)} dari Target PKB</div>
+            <svg viewBox="0 0 160 26" class="w-full h-5 overflow-visible">
+              <path d="M 2 23 L 30 17 L 58 20 L 86 11 L 114 15 L 140 6 L 158 8" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 3: Realisasi BBNKB -->
+        <div onclick="window.gisSwitchMenu('realisasi')" class="cursor-pointer rounded-2xl p-4 pb-3 bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md hover:shadow-lg transition relative overflow-hidden flex flex-col justify-between min-h-[126px]">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-[11px] font-semibold text-amber-100">Realisasi BBNKB</div>
+              <div class="text-2xl font-extrabold tracking-tight mt-0.5">${fmtRpShort(agg.realisasiBBNKB)}</div>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0 font-extrabold text-xs">
+              Rp
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="text-[10px] font-semibold text-amber-100 mb-1">▲ ${fmtPct(agg.pctBBNKB)} Capaian</div>
+            <svg viewBox="0 0 160 26" class="w-full h-5 overflow-visible">
+              <path d="M 2 22 L 32 16 L 60 18 L 88 10 L 116 14 L 142 5 L 158 9" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 4: Potensi PAD Optimal (10%) -->
+        <div onclick="window.gisSwitchMenu('potensi_kepatuhan')" class="cursor-pointer rounded-2xl p-4 pb-3 bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-md hover:shadow-lg transition relative overflow-hidden flex flex-col justify-between min-h-[126px]">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-[11px] font-semibold text-sky-100">Potensi PAD Optimal (${appState.config.bobotOptimalisasi}%)</div>
+              <div class="text-2xl font-extrabold tracking-tight mt-0.5">${fmtRpShort(agg.potensiPAD10)}</div>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-gem text-sm"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="text-[10px] font-semibold text-sky-100 mb-1">▲ ${appState.config.bobotOptimalisasi}% Unit × ${fmtRpShort(agg.nilaiRataUnit)}</div>
+            <svg viewBox="0 0 160 26" class="w-full h-5 overflow-visible">
+              <path d="M 2 22 L 30 14 L 58 18 L 86 9 L 114 13 L 140 5 L 158 8" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 5: Kepatuhan Wajib Pajak -->
+        <div onclick="window.gisSwitchMenu('potensi_kepatuhan')" class="cursor-pointer rounded-2xl p-4 pb-3 bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md hover:shadow-lg transition relative overflow-hidden flex flex-col justify-between min-h-[126px]">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-[11px] font-semibold text-pink-100">Kepatuhan Wajib Pajak</div>
+              <div class="text-2xl font-extrabold tracking-tight mt-0.5">${fmtPct(agg.kepatuhanProv)}</div>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-users text-sm"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="text-[10px] font-semibold text-pink-100 mb-1">▲ Proyeksi +${appState.config.bobotOptimalisasi}%: ${fmtPct(agg.proyeksiKepatuhanAbsolut)}</div>
+            <svg viewBox="0 0 160 26" class="w-full h-5 overflow-visible">
+              <path d="M 2 22 L 28 16 L 56 19 L 84 11 L 112 15 L 138 6 L 158 9" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Card 6: Total Tunggakan (R2+R4) -->
+        <div onclick="window.gisSwitchMenu('tunggakan')" class="cursor-pointer rounded-2xl p-4 pb-3 bg-gradient-to-br from-teal-500 to-emerald-600 text-white shadow-md hover:shadow-lg transition relative overflow-hidden flex flex-col justify-between min-h-[126px]">
+          <div class="flex items-start justify-between">
+            <div>
+              <div class="text-[11px] font-semibold text-teal-100">Total Tunggakan (R2+R4)</div>
+              <div class="text-2xl font-extrabold tracking-tight mt-0.5">${fmtNum(agg.totalTung)}</div>
+            </div>
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-file-invoice-dollar text-sm"></i>
+            </div>
+          </div>
+          <div class="mt-2">
+            <div class="text-[10px] font-semibold text-teal-100 mb-1">▼ Berat (>10 Thn): ${fmtNum(agg.totalBerat)}</div>
+            <svg viewBox="0 0 160 26" class="w-full h-5 overflow-visible">
+              <path d="M 2 22 L 30 15 L 58 18 L 86 10 L 114 14 L 140 6 L 158 9" fill="none" stroke="rgba(255,255,255,0.65)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- BARIS 2: LINE CHART TREN REALISASI, DONUT CHART KOMPOSISI TUNGGAKAN, & POTENSI OPTIMALISASI PAD (10%) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Panel Kiri (5 Kolom): Line Chart Tren Realisasi PKB & BBNKB (2026) -->
+        <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between">
+          <div>
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="font-extrabold text-sm text-slate-900">Tren Realisasi PKB & BBNKB (2026)</h3>
+                <p class="text-[11px] text-slate-400">Perkembangan penerimaan Samsat bulanan</p>
+              </div>
+              <button type="button" onclick="window.gisSwitchMenu('realisasi')" class="px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-[11px] transition">
+                Ubah Data →
+              </button>
+            </div>
+
+            <div class="flex items-center gap-4 text-[11px] font-bold mb-2">
+              <span class="flex items-center gap-1.5 text-blue-600">
+                <span class="w-3 h-2 rounded-sm bg-blue-600 inline-block"></span> PKB (${fmtRpShort(agg.realisasiPKB)})
+              </span>
+              <span class="flex items-center gap-1.5 text-emerald-600">
+                <span class="w-3 h-2 rounded-sm bg-emerald-500 inline-block"></span> BBNKB (${fmtRpShort(agg.realisasiBBNKB)})
+              </span>
+            </div>
+          </div>
+
+          <div class="w-full pt-1">
+            <svg viewBox="0 0 ${chartW} ${chartH}" class="w-full h-44 overflow-visible">
+              <line x1="${padL}" y1="${padT}" x2="${chartW - padR}" y2="${padT}" stroke="#F1F5F9" stroke-width="1"/>
+              <line x1="${padL}" y1="${padT + plotH * 0.33}" x2="${chartW - padR}" y2="${padT + plotH * 0.33}" stroke="#F1F5F9" stroke-width="1"/>
+              <line x1="${padL}" y1="${padT + plotH * 0.66}" x2="${chartW - padR}" y2="${padT + plotH * 0.66}" stroke="#F1F5F9" stroke-width="1"/>
+              <line x1="${padL}" y1="${padT + plotH}" x2="${chartW - padR}" y2="${padT + plotH}" stroke="#E2E8F0" stroke-width="1"/>
+
+              <text x="2" y="${padT + 4}" font-size="9" fill="#94A3B8" font-weight="600">15M</text>
+              <text x="2" y="${padT + plotH * 0.33 + 3}" font-size="9" fill="#94A3B8" font-weight="600">10M</text>
+              <text x="6" y="${padT + plotH * 0.66 + 3}" font-size="9" fill="#94A3B8" font-weight="600">5M</text>
+              <text x="12" y="${padT + plotH + 3}" font-size="9" fill="#94A3B8" font-weight="600">0</text>
+
+              <polygon points="${pkbArea}" fill="rgba(37, 99, 235, 0.07)" />
+              <polyline fill="none" stroke="#2563EB" stroke-width="2.2" points="${pkbPolyline}" />
+              <polyline fill="none" stroke="#10B981" stroke-width="2.2" points="${bbnPolyline}" />
+
+              ${pkbPoints.map(function(p) {
+                return `
+                  <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="#FFFFFF" stroke="#2563EB" stroke-width="2">
+                    <title>PKB ${p.label}: ${fmtRp(p.val)}</title>
+                  </circle>
+                  <text x="${p.x.toFixed(1)}" y="${chartH - 4}" text-anchor="middle" font-size="9" fill="#64748B" font-weight="600">${p.label}</text>
+                `;
+              }).join("")}
+
+              ${bbnPoints.map(function(p) {
+                return `
+                  <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="#FFFFFF" stroke="#10B981" stroke-width="2">
+                    <title>BBNKB ${p.label}: ${fmtRp(p.val)}</title>
+                  </circle>
+                `;
+              }).join("")}
+            </svg>
+          </div>
+        </div>
+
+        <!-- Panel Tengah (4 Kolom): Donut Chart Komposisi Kategori Tunggakan -->
+        <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between">
+          <div class="flex items-start justify-between">
+            <div>
+              <h3 class="font-extrabold text-sm text-slate-900">Komposisi Kategori Tunggakan</h3>
+              <p class="text-[11px] text-slate-400">Merah (>10 Thn), Kuning (5 Thn), Hijau (1 Thn)</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-extrabold text-[10px]">${fmtNum(agg.totalTung)} Unit</span>
+          </div>
+
+          <div class="grid grid-cols-12 items-center gap-2 my-auto py-3">
+            <div class="col-span-5 flex items-center justify-center">
+              <div class="relative w-32 h-32 flex items-center justify-center">
+                <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+                  <circle cx="18" cy="18" r="14" fill="transparent" stroke="#F1F5F9" stroke-width="5.5"></circle>
+                  <circle cx="18" cy="18" r="14" fill="transparent" stroke="#EF4444" stroke-width="5.5"
+                    stroke-dasharray="${pctBerat} ${100 - pctBerat}" stroke-dashoffset="0"></circle>
+                  <circle cx="18" cy="18" r="14" fill="transparent" stroke="#F59E0B" stroke-width="5.5"
+                    stroke-dasharray="${pctSedang} ${100 - pctSedang}" stroke-dashoffset="-${pctBerat}"></circle>
+                  <circle cx="18" cy="18" r="14" fill="transparent" stroke="#10B981" stroke-width="5.5"
+                    stroke-dasharray="${pctRingan} ${100 - pctRingan}" stroke-dashoffset="-${pctBerat + pctSedang}"></circle>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span class="text-[8px] font-extrabold text-slate-400 tracking-wider uppercase">PRIORITAS</span>
+                  <span class="text-sm font-extrabold text-red-600">${pctBerat.toFixed(1)}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-span-7 space-y-3 pl-2">
+              <div class="flex items-start justify-between border-b border-slate-100 pb-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-red-500 mt-1 shrink-0"></span>
+                  <div>
+                    <div class="text-xs font-extrabold text-slate-800">Berat (>10 Thn)</div>
+                    <div class="text-[10px] text-slate-400">${fmtNum(agg.totalBerat)} unit</div>
+                  </div>
+                </div>
+                <span class="text-xs font-extrabold text-red-600">${pctBerat.toFixed(1)}%</span>
+              </div>
+
+              <div class="flex items-start justify-between border-b border-slate-100 pb-2">
+                <div class="flex items-start gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500 mt-1 shrink-0"></span>
+                  <div>
+                    <div class="text-xs font-extrabold text-slate-800">Sedang (5 Thn)</div>
+                    <div class="text-[10px] text-slate-400">${fmtNum(agg.totalSedang)} unit</div>
+                  </div>
+                </div>
+                <span class="text-xs font-extrabold text-amber-600">${pctSedang.toFixed(1)}%</span>
+              </div>
+
+              <div class="flex items-start justify-between">
+                <div class="flex items-start gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1 shrink-0"></span>
+                  <div>
+                    <div class="text-xs font-extrabold text-slate-800">Ringan (1 Thn)</div>
+                    <div class="text-[10px] text-slate-400">${fmtNum(agg.totalRingan)} unit</div>
+                  </div>
+                </div>
+                <span class="text-xs font-extrabold text-emerald-600">${pctRingan.toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel Kanan (3 Kolom): Potensi Optimalisasi PAD (10% Unit x Rp 1.000.000) -->
+        <div class="lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between">
+          <div>
+            <h3 class="font-extrabold text-sm text-slate-900">Potensi Optimalisasi PAD (${appState.config.bobotOptimalisasi}%)</h3>
+            <p class="text-[11px] text-slate-400 mb-3.5">Potensi ${appState.config.bobotOptimalisasi}% unit × rata-rata ${fmtRp(agg.nilaiRataUnit)}</p>
+
+            <div class="space-y-2.5">
+              <!-- Kategori Berat -->
+              <div class="p-2.5 rounded-xl bg-red-50/70 border border-red-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-fire-flame-curved text-xs"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-extrabold text-slate-800">Kategori Berat</div>
+                    <div class="text-[10px] text-red-500 font-semibold">${appState.config.bobotOptimalisasi}% dari ${fmtNum(agg.totalBerat)} unit</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs font-extrabold text-red-700">${fmtRpShort(agg.potensiBeratRp)}</div>
+                  <div class="text-[10px] font-bold text-red-500">${fmtNum(Math.round(agg.unitOptBerat))} unit</div>
+                </div>
+              </div>
+
+              <!-- Kategori Sedang -->
+              <div class="p-2.5 rounded-xl bg-amber-50/70 border border-amber-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-clock text-xs"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-extrabold text-slate-800">Kategori Sedang</div>
+                    <div class="text-[10px] text-amber-600 font-semibold">${appState.config.bobotOptimalisasi}% dari ${fmtNum(agg.totalSedang)} unit</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs font-extrabold text-amber-800">${fmtRpShort(agg.potensiSedangRp)}</div>
+                  <div class="text-[10px] font-bold text-amber-600">${fmtNum(Math.round(agg.unitOptSedang))} unit</div>
+                </div>
+              </div>
+
+              <!-- Kategori Ringan -->
+              <div class="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-circle-check text-xs"></i>
+                  </div>
+                  <div>
+                    <div class="text-xs font-extrabold text-slate-800">Kategori Ringan</div>
+                    <div class="text-[10px] text-emerald-600 font-semibold">${appState.config.bobotOptimalisasi}% dari ${fmtNum(agg.totalRingan)} unit</div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs font-extrabold text-emerald-800">${fmtRpShort(agg.potensiRinganRp)}</div>
+                  <div class="text-[10px] font-bold text-emerald-600">${fmtNum(Math.round(agg.unitOptRingan))} unit</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 mt-3 border-t border-slate-200 flex items-center justify-between">
+            <span class="text-xs font-extrabold text-slate-700">Total Potensi ${appState.config.bobotOptimalisasi}%</span>
+            <span class="text-sm font-extrabold text-emerald-600">${fmtMiliarText(agg.potensiPAD10)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BARIS 3: REKAP KENDARAAN & TUNGGAKAN WILAYAH, RINGKASAN KEPATUHAN PAJAK, & PRIORITAS INTENSIFIKASI (>10 THN) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-extrabold text-sm text-slate-900">Rekap Kendaraan & Tunggakan Wilayah</h3>
+              <span class="text-[11px] font-bold text-blue-600">6 Kab/Kota</span>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-slate-200 text-slate-400 text-[11px]">
+                    <th class="py-2 px-1.5 w-6">#</th>
+                    <th class="py-2 px-2">Kabupaten / Kota</th>
+                    <th class="py-2 px-2 text-right">Kendaraan</th>
+                    <th class="py-2 px-2 text-right">Tunggakan</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${rekap.map(function(w, idx) {
+                    return `
+                      <tr class="hover:bg-slate-50">
+                        <td class="py-2.5 px-1.5 text-slate-400 font-semibold">${idx + 1}</td>
+                        <td class="py-2.5 px-2 font-extrabold text-slate-800">${w.kab_kota}</td>
+                        <td class="py-2.5 px-2 text-right font-semibold text-slate-700">${fmtNum(w.kend_total)}</td>
+                        <td class="py-2.5 px-2 text-right font-extrabold text-red-600">${fmtNum(w.tung_total)}</td>
+                      </tr>
+                    `;
+                  }).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="pt-3 mt-2 border-t border-slate-100 text-center">
+            <button type="button" onclick="window.gisSwitchMenu('kendaraan')" class="text-xs font-extrabold text-blue-600 hover:underline">
+              Lihat & Ubah Detail Kecamatan/Desa →
+            </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between">
+          <div>
+            <h3 class="font-extrabold text-sm text-slate-900 mb-3.5">Ringkasan Kepatuhan Pajak</h3>
+
+            <div class="space-y-3 text-xs">
+              <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <i class="fa-solid fa-layer-group text-xs"></i>
+                  </span>
+                  <span class="font-semibold text-slate-600">Total Objek Pajak</span>
+                </div>
+                <span class="font-extrabold text-slate-900 text-sm">${fmtNum(agg.totalObjekPajak || 619813)}</span>
+              </div>
+
+              <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <i class="fa-solid fa-check-double text-xs"></i>
+                  </span>
+                  <span class="font-semibold text-slate-600">Sudah Daftar Ulang</span>
+                </div>
+                <span class="font-extrabold text-emerald-600 text-sm">${fmtNum(agg.totalSudahPenul || 197560)}</span>
+              </div>
+
+              <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                  </span>
+                  <span class="font-semibold text-slate-600">Belum Daftar Ulang</span>
+                </div>
+                <span class="font-extrabold text-red-600 text-sm">${fmtNum(agg.totalBelumPenul || 373555)}</span>
+              </div>
+
+              <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <i class="fa-solid fa-car text-xs"></i>
+                  </span>
+                  <span class="font-semibold text-slate-600">Kepatuhan Roda 4</span>
+                </div>
+                <span class="font-extrabold text-slate-900 text-sm">56,78%</span>
+              </div>
+
+              <div class="flex items-center justify-between py-1.5">
+                <div class="flex items-center gap-2.5">
+                  <span class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <i class="fa-solid fa-motorcycle text-xs"></i>
+                  </span>
+                  <span class="font-semibold text-slate-600">Kepatuhan Roda 2</span>
+                </div>
+                <span class="font-extrabold text-slate-900 text-sm">31,41%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 mt-2 border-t border-slate-100 text-center">
+            <button type="button" onclick="window.gisSwitchMenu('potensi_kepatuhan')" class="text-xs font-extrabold text-blue-600 hover:underline">
+              Lihat Analisis Kepatuhan ${fmtPct(agg.kepatuhanProv)} →
+            </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 bg-rose-50/70 rounded-2xl p-5 shadow-sm border border-rose-200 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-extrabold text-sm text-rose-700 flex items-center gap-1.5">
+                <i class="fa-regular fa-bell text-rose-600"></i> Prioritas Intensifikasi (>10 Thn)
+              </h3>
+              <span class="px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-extrabold">Penanganan Utama</span>
+            </div>
+
+            <div class="bg-white/90 rounded-xl p-3 border border-rose-100 overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="border-b border-rose-100 text-rose-800 text-[11px]">
+                    <th class="py-1.5 px-2">Wilayah Kab/Kota</th>
+                    <th class="py-1.5 px-2 text-right">Berat (>10 Th)</th>
+                    <th class="py-1.5 px-2 text-right">Kepatuhan</th>
+                    <th class="py-1.5 px-2 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-rose-50">
+                  ${prioritasList.slice(0, 5).map(function(w) {
+                    const shortName = w.kab_kota.replace("KABUPATEN ", "KAB. ");
+                    return `
+                      <tr>
+                        <td class="py-2 px-2 font-extrabold text-slate-800">${shortName}</td>
+                        <td class="py-2 px-2 text-right font-extrabold text-red-600">${fmtNum(w.berat_10thn)}</td>
+                        <td class="py-2 px-2 text-right font-semibold text-slate-600">${fmtPct(w.kepatuhan)}</td>
+                        <td class="py-2 px-2 text-center">
+                          <span class="px-2.5 py-0.5 rounded text-[10px] font-extrabold text-white ${w.prioritas_utama ? 'bg-red-500' : 'bg-amber-500'}">
+                            ${w.prioritas_utama ? 'Utama' : 'Pantau'}
+                          </span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="pt-3 mt-2 text-center">
+            <button type="button" onclick="window.gisSwitchMenu('geospasial')" class="text-xs font-extrabold text-rose-700 hover:underline">
+              Buka Peta Geospasial Prioritas →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BARIS 4: TREN PENERIMAAN BULANAN (BAR HIJAU), TANGKAPAN DOOR-TO-DOOR (DIS), & SEBARAN KEPATUHAN WILAYAH -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-extrabold text-sm text-slate-900">Tren Penerimaan Bulanan</h3>
+            <span class="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-extrabold text-[10px]">PKB + BBNKB</span>
+          </div>
+
+          <div class="grid grid-cols-8 gap-2.5 items-end h-40 pt-4 px-1 border-b border-slate-100">
+            ${delapanBulan.map(function(b) {
+              const totalBulan = Number(b.pkb || 0) + Number(b.bbnkb || 0);
+              const barPct = Math.min(100, Math.max(20, Math.round((totalBulan / maxBarGabungan) * 100)));
+              return `
+                <div class="flex flex-col items-center justify-end h-full gap-1.5">
+                  <div class="w-full h-32 flex items-end justify-center">
+                    <div title="${b.bulan}: ${fmtRp(totalBulan)}" style="height:${barPct}%" class="w-full rounded-t-md bg-gradient-to-t from-emerald-600 to-emerald-400 hover:opacity-90 transition"></div>
+                  </div>
+                  <span class="text-[10px] font-semibold text-slate-500">${b.bulan.slice(0, 3)}</span>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3.5">
+              <h3 class="font-extrabold text-sm text-slate-900">Tangkapan Door-to-Door (DIS)</h3>
+              <button type="button" onclick="window.gisSwitchMenu('integrasi_dis')" class="text-xs font-extrabold text-blue-600 hover:underline">
+                Lihat URL →
+              </button>
+            </div>
+
+            <div class="space-y-2.5">
+              ${(appState.disLogs || []).slice(0, 3).map(function(log) {
+                const shortKab = log.kab_kota.replace("KABUPATEN ", "KAB. ");
+                return `
+                  <div class="p-3 rounded-xl bg-slate-50/90 border border-slate-200/80 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-3">
+                      <div class="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <i class="fa-solid fa-house-user text-xs"></i>
+                      </div>
+                      <div>
+                        <div class="text-xs font-extrabold text-slate-900">${log.nopol} • ${shortKab}</div>
+                        <div class="text-[10px] text-slate-500">Kec. ${log.kecamatan} (${log.kategori})</div>
+                      </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <div class="text-xs font-extrabold text-emerald-600">${fmtRp(log.nominal)}</div>
+                      <div class="text-[10px] text-slate-400">${log.status}</div>
+                    </div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+
+          <div class="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+            <span class="text-slate-400 font-medium">Status Webhook URL DIS:</span>
+            <span class="font-extrabold text-emerald-600 flex items-center gap-1">
+              <i class="fa-solid fa-circle-check"></i> Terintegrasi Otomatis
+            </span>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-slate-200/90 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-extrabold text-sm text-slate-900">Sebaran Kepatuhan Wilayah</h3>
+            <span class="text-[11px] font-semibold text-slate-400">Target Prov: ${fmtPct(agg.kepatuhanProv)}</span>
+          </div>
+
+          <div class="space-y-2.5 my-auto">
+            ${rekap.map(function(w, idx) {
+              const barColors = [
+                "bg-blue-600",
+                "bg-emerald-500",
+                "bg-amber-500",
+                "bg-purple-500",
+                "bg-rose-500",
+                "bg-teal-500"
+              ];
+              const shortName = w.kab_kota.replace("KABUPATEN ", "KAB. ");
+              const widthPct = Math.min(100, Math.max(15, Number(w.kepatuhan || 0) * 1.6));
+              return `
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between text-[11px]">
+                    <span class="font-bold text-slate-700">${shortName}</span>
+                    <span class="font-extrabold text-slate-900">${fmtPct(w.kepatuhan)} (${fmtNum(w.sub_sudah)} Patuh)</span>
+                  </div>
+                  <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div class="h-full rounded-full ${barColors[idx % barColors.length]}" style="width: ${widthPct.toFixed(1)}%"></div>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================================
+// VIEW 2: MONITORING DATA KENDARAAN R2 & R4 + IMPORT EXCEL/CSV
+// ============================================================================
+function renderKendaraanView(container) {
+  const agg = getDashboardAggregates();
+  const rekap = appState.rekapWilayah || [];
+
+  container.innerHTML = `
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+          <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-car-side text-blue-600"></i>
+            Monitoring Data Kendaraan Roda 2 (R2) dan Roda 4 (R4) Se-Provinsi Gorontalo
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Kelola dan import data (Nama Kab/Kota, Kecamatan, Desa/Kelurahan, R2, R4, Total) — perubahan otomatis memperbarui dashboard</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="cursor-pointer px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-file-import"></i> Import Excel/CSV Kendaraan
+            <input type="file" id="input-import-kendaraan" accept=".xlsx,.xls,.csv" class="hidden" />
+          </label>
+          <button type="button" id="btn-save-rekap-kendaraan" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Data
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 class="font-extrabold text-sm text-slate-800 mb-3">Rekapitulasi Kendaraan R2 & R4 Per Kabupaten/Kota (619.814 Unit)</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-navy-900 text-white text-[11px]">
+                <th class="py-2.5 px-3">NO</th>
+                <th class="py-2.5 px-3">KABUPATEN / KOTA</th>
+                <th class="py-2.5 px-3 text-right">RODA 2 (R2)</th>
+                <th class="py-2.5 px-3 text-right">RODA 4 (R4)</th>
+                <th class="py-2.5 px-3 text-right">JUMLAH TOTAL</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              ${rekap.map(function(w, idx) {
+                return `
+                  <tr class="hover:bg-slate-50">
+                    <td class="py-2 px-3 font-bold text-slate-400">${idx + 1}</td>
+                    <td class="py-2 px-3 font-extrabold text-slate-900">${w.kab_kota}</td>
+                    <td class="py-2 px-3 text-right">
+                      <input type="number" data-kend-r2="${w.id}" value="${w.kend_r2}" class="w-32 text-right font-bold px-2 py-1 rounded border border-slate-300" />
+                    </td>
+                    <td class="py-2 px-3 text-right">
+                      <input type="number" data-kend-r4="${w.id}" value="${w.kend_r4}" class="w-32 text-right font-bold px-2 py-1 rounded border border-slate-300" />
+                    </td>
+                    <td class="py-2 px-3 text-right font-extrabold text-blue-700">${fmtNum(w.kend_total)}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+            <tfoot>
+              <tr class="bg-slate-900 text-white font-extrabold text-xs">
+                <td colspan="2" class="py-3 px-3">TOTAL KENDARAAN PROVINSI GORONTALO</td>
+                <td class="py-3 px-3 text-right text-amber-300">${fmtNum(agg.totalKendR2)}</td>
+                <td class="py-3 px-3 text-right text-emerald-300">${fmtNum(agg.totalKendR4)}</td>
+                <td class="py-3 px-3 text-right text-white text-sm">${fmtNum(agg.totalKend)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="font-extrabold text-sm text-slate-800">Tambah / Rincian Data Kendaraan Per Kecamatan & Desa/Kelurahan</h3>
+        <form id="form-add-kendaraan" class="grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs">
+          <select id="add-kend-kab" class="p-2 rounded-lg border border-slate-300 font-semibold">
+            ${WILAYAH_LIST.map(function(w) { return '<option value="' + w + '">' + w + '</option>'; }).join("")}
+          </select>
+          <input type="text" id="add-kend-kec" required placeholder="Nama Kecamatan" class="p-2 rounded-lg border border-slate-300" />
+          <input type="text" id="add-kend-desa" required placeholder="Nama Desa/Kelurahan" class="p-2 rounded-lg border border-slate-300" />
+          <input type="number" id="add-kend-r2" required placeholder="Jumlah R2" class="p-2 rounded-lg border border-slate-300" />
+          <input type="number" id="add-kend-r4" required placeholder="Jumlah R4" class="p-2 rounded-lg border border-slate-300" />
+          <button type="submit" class="p-2 rounded-lg bg-navy-900 hover:bg-blue-700 text-white font-bold">+ Tambah Baris</button>
+        </form>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 font-extrabold">
+                <th class="py-2 px-3">Kabupaten/Kota</th>
+                <th class="py-2 px-3">Kecamatan</th>
+                <th class="py-2 px-3">Desa/Kelurahan</th>
+                <th class="py-2 px-3 text-right">R2</th>
+                <th class="py-2 px-3 text-right">R4</th>
+                <th class="py-2 px-3 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              ${(appState.dataKendaraan || []).map(function(d) {
+                return `
+                  <tr>
+                    <td class="py-2 px-3 font-bold">${d.kab_kota}</td>
+                    <td class="py-2 px-3">${d.kecamatan}</td>
+                    <td class="py-2 px-3">${d.desa_kelurahan}</td>
+                    <td class="py-2 px-3 text-right font-semibold">${fmtNum(d.r2)}</td>
+                    <td class="py-2 px-3 text-right font-semibold">${fmtNum(d.r4)}</td>
+                    <td class="py-2 px-3 text-right font-extrabold text-blue-600">${fmtNum(d.total)}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("btn-save-rekap-kendaraan").onclick = async function() {
+    (appState.rekapWilayah || []).forEach(function(w) {
+      const r2El = container.querySelector('[data-kend-r2="' + w.id + '"]');
+      const r4El = container.querySelector('[data-kend-r4="' + w.id + '"]');
+      if (r2El) w.kend_r2 = Number(r2El.value || 0);
+      if (r4El) w.kend_r4 = Number(r4El.value || 0);
+      w.kend_total = w.kend_r2 + w.kend_r4;
+    });
+    await saveStateToStorage();
+    renderKendaraanView(container);
+    showToast("Data kendaraan R2 & R4 berhasil disimpan dan diperbarui di seluruh Dashboard!", "success");
+  };
+
+  document.getElementById("form-add-kendaraan").onsubmit = async function(e) {
+    e.preventDefault();
+    const r2 = Number(document.getElementById("add-kend-r2").value || 0);
+    const r4 = Number(document.getElementById("add-kend-r4").value || 0);
+    const newRow = {
+      id: "kend-" + Date.now(),
+      kab_kota: document.getElementById("add-kend-kab").value,
+      kecamatan: document.getElementById("add-kend-kec").value.trim().toUpperCase(),
+      desa_kelurahan: document.getElementById("add-kend-desa").value.trim().toUpperCase(),
+      r2: r2,
+      r4: r4,
+      total: r2 + r4
+    };
+    appState.dataKendaraan.unshift(newRow);
+    if (!IS_PREVIEW && fbDb) {
+      try { await addDoc(collection(fbDb, "data_kendaraan"), newRow); } catch (err) {}
+    }
+    await saveStateToStorage();
+    renderKendaraanView(container);
+    showToast("Baris data kendaraan berhasil ditambahkan!", "success");
+  };
+
+  document.getElementById("input-import-kendaraan").onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(evt) {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: "binary" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+        rows.forEach(function(r) {
+          const kab = String(r["Nama Kab/Kota"] || r["URAIAN"] || r["kab_kota"] || "KOTA GORONTALO").toUpperCase();
+          const kec = String(r["Kecamatan"] || r["kecamatan"] || "-").toUpperCase();
+          const desa = String(r["Desa/Kelurahan"] || r["desa_kelurahan"] || "-").toUpperCase();
+          const r2 = Number(r["R2"] || r["RODA 2"] || 0);
+          const r4 = Number(r["R4"] || r["RODA 4"] || 0);
+          if (r2 > 0 || r4 > 0) {
+            appState.dataKendaraan.unshift({
+              id: "kend-" + Date.now() + Math.random().toString().slice(2, 5),
+              kab_kota: kab,
+              kecamatan: kec,
+              desa_kelurahan: desa,
+              r2: r2,
+              r4: r4,
+              total: r2 + r4
+            });
+          }
+        });
+        await saveStateToStorage();
+        renderKendaraanView(container);
+        showToast("Import file Excel/CSV Kendaraan berhasil!", "success");
+      } catch (err) {
+        showToast("Format file tidak valid: " + err.message, "danger");
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+}
+
+// ============================================================================
+// VIEW 3: MONITORING DATA TUNGGAKAN & KATEGORI WARNA (MERAH >10TH, KUNING 5TH, HIJAU 1TH)
+// ============================================================================
+function renderTunggakanView(container) {
+  const agg = getDashboardAggregates();
+  const rekap = appState.rekapWilayah || [];
+
+  container.innerHTML = `
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+          <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+            Monitoring Data Tunggakan R2 & R4 serta Perbandingan Kategori Lama Tunggakan
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">Klasifikasi: <strong>Berat (>10 Tahun) Warna Merah</strong>, <strong>Sedang (5 Tahun) Warna Kuning</strong>, dan <strong>Ringan (1 Tahun) Warna Hijau</strong></p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="cursor-pointer px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-file-import"></i> Import Data Tunggakan
+            <input type="file" id="input-import-tunggakan" accept=".xlsx,.xls,.csv" class="hidden" />
+          </label>
+          <button type="button" id="btn-save-rekap-tunggakan" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Tunggakan
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-navy-900 text-white text-[11px]">
+                <th class="py-2.5 px-3">KABUPATEN / KOTA</th>
+                <th class="py-2.5 px-2 text-right">TOTAL KENDARAAN</th>
+                <th class="py-2.5 px-2 text-right">TUNGGAKAN R2</th>
+                <th class="py-2.5 px-2 text-right">TUNGGAKAN R4</th>
+                <th class="py-2.5 px-2 text-right">TOTAL TUNGGAKAN</th>
+                <th class="py-2.5 px-2 text-right bg-red-600">BERAT (>10 THN)</th>
+                <th class="py-2.5 px-2 text-right bg-amber-500">SEDANG (5 THN)</th>
+                <th class="py-2.5 px-2 text-right bg-emerald-600">RINGAN (1 THN)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              ${rekap.map(function(w) {
+                return `
+                  <tr class="hover:bg-slate-50">
+                    <td class="py-2 px-3 font-extrabold text-slate-900">${w.kab_kota}</td>
+                    <td class="py-2 px-2 text-right font-semibold text-slate-600">${fmtNum(w.kend_total)}</td>
+                    <td class="py-2 px-2 text-right">
+                      <input type="number" data-tung-r2="${w.id}" value="${w.tung_r2}" class="w-24 text-right font-bold px-1.5 py-1 rounded border border-slate-300" />
+                    </td>
+                    <td class="py-2 px-2 text-right">
+                      <input type="number" data-tung-r4="${w.id}" value="${w.tung_r4}" class="w-20 text-right font-bold px-1.5 py-1 rounded border border-slate-300" />
+                    </td>
+                    <td class="py-2 px-2 text-right font-extrabold text-rose-600">${fmtNum(w.tung_total)}</td>
+                    <td class="py-2 px-2 text-right bg-red-50">
+                      <input type="number" data-tung-berat="${w.id}" value="${w.berat_10thn}" class="w-24 text-right font-extrabold text-red-700 px-1.5 py-1 rounded border border-red-300 bg-white" />
+                    </td>
+                    <td class="py-2 px-2 text-right bg-amber-50">
+                      <input type="number" data-tung-sedang="${w.id}" value="${w.sedang_5thn}" class="w-24 text-right font-extrabold text-amber-700 px-1.5 py-1 rounded border border-amber-300 bg-white" />
+                    </td>
+                    <td class="py-2 px-2 text-right bg-emerald-50">
+                      <input type="number" data-tung-ringan="${w.id}" value="${w.ringan_1thn}" class="w-24 text-right font-extrabold text-emerald-700 px-1.5 py-1 rounded border border-emerald-300 bg-white" />
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+            <tfoot>
+              <tr class="bg-slate-900 text-white font-extrabold text-xs">
+                <td class="py-3 px-3">TOTAL PROVINSI GORONTALO</td>
+                <td class="py-3 px-2 text-right">${fmtNum(agg.totalKend)}</td>
+                <td class="py-3 px-2 text-right">${fmtNum(agg.totalTungR2)}</td>
+                <td class="py-3 px-2 text-right">${fmtNum(agg.totalTungR4)}</td>
+                <td class="py-3 px-2 text-right text-amber-300">${fmtNum(agg.totalTung)}</td>
+                <td class="py-3 px-2 text-right bg-red-700">${fmtNum(agg.totalBerat)}</td>
+                <td class="py-3 px-2 text-right bg-amber-600">${fmtNum(agg.totalSedang)}</td>
+                <td class="py-3 px-2 text-right bg-emerald-700">${fmtNum(agg.totalRingan)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("btn-save-rekap-tunggakan").onclick = async function() {
+    (appState.rekapWilayah || []).forEach(function(w) {
+      const r2El = container.querySelector('[data-tung-r2="' + w.id + '"]');
+      const r4El = container.querySelector('[data-tung-r4="' + w.id + '"]');
+      const bEl = container.querySelector('[data-tung-berat="' + w.id + '"]');
+      const sEl = container.querySelector('[data-tung-sedang="' + w.id + '"]');
+      const rgEl = container.querySelector('[data-tung-ringan="' + w.id + '"]');
+      if (r2El) w.tung_r2 = Number(r2El.value || 0);
+      if (r4El) w.tung_r4 = Number(r4El.value || 0);
+      if (bEl) w.berat_10thn = Number(bEl.value || 0);
+      if (sEl) w.sedang_5thn = Number(sEl.value || 0);
+      if (rgEl) w.ringan_1thn = Number(rgEl.value || 0);
+      w.tung_total = w.tung_r2 + w.tung_r4;
+    });
+    await saveStateToStorage();
+    renderTunggakanView(container);
+    showToast("Data tunggakan & kategori warna berhasil disimpan dan diperbarui di Dashboard!", "success");
+  };
+
+  document.getElementById("input-import-tunggakan").onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(evt) {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: "binary" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+        rows.forEach(function(r) {
+          const kab = String(r["Nama Kab/Kota"] || r["URAIAN"] || "KOTA GORONTALO").toUpperCase();
+          const r2 = Number(r["R2"] || r["RODA 2"] || 0);
+          const r4 = Number(r["R4"] || r["RODA 4"] || 0);
+          const tot = r2 + r4;
+          const found = (appState.rekapWilayah || []).find(function(w) { return w.kab_kota === kab; });
+          if (found && tot > 0) {
+            found.tung_r2 = r2;
+            found.tung_r4 = r4;
+            found.tung_total = tot;
+          }
+        });
+        await saveStateToStorage();
+        renderTunggakanView(container);
+        showToast("Import data tunggakan berhasil!", "success");
+      } catch (err) {
+        showToast("Gagal membaca file: " + err.message, "danger");
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+}
+
+// ============================================================================
+// VIEW 4: PETA GEOSPASIAL INTERAKTIF (LEAFLET + OPENSTREETMAP ASLI)
+// ============================================================================
+function renderGeospasialView(container) {
+  const rekap = appState.rekapWilayah || [];
+  const selectedWil = rekap.find(function(w) { return w.kab_kota === appState.selectedGeoWilayah; }) || rekap[0];
+  const sortedPrioritas = [...rekap].sort(function(a, b) { return b.berat_10thn - a.berat_10thn; });
+  const isLayerProv = appState.geoLayerMode === "provinsi";
+
+  container.innerHTML = `
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div>
+          <h2 class="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight uppercase">
+            PETA GEOSPASIAL INTENSIFIKASI SAMSAT PROVINSI GORONTALO
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Klik pada titik Kabupaten/Kota atau Kecamatan/Kelurahan untuk melihat potensi kendaraan & realisasi pajak secara langsung.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" id="btn-layer-provinsi" class="px-4 py-2 rounded-full text-xs font-extrabold transition flex items-center gap-2 ${
+            isLayerProv
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+          }">
+            <i class="fa-solid fa-map"></i>
+            <span>Layer 6 Kab/Kota (Provinsi)</span>
+          </button>
+          <button type="button" id="btn-layer-kecamatan" class="px-4 py-2 rounded-full text-xs font-extrabold transition flex items-center gap-2 ${
+            !isLayerProv
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+          }">
+            <i class="fa-solid fa-location-crosshairs"></i>
+            <span>Layer 9 Kecamatan & 50 Kelurahan (Kota Gtlo)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="relative rounded-2xl overflow-hidden border border-slate-200 shadow-inner bg-slate-100">
+        <div id="leaflet-gorontalo-map"></div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs">
+        <div class="flex flex-wrap items-center gap-3 font-bold">
+          <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+            <span class="w-3 h-3 rounded-full bg-red-600 inline-block"></span> Berat (>10 Tahun • Prioritas Penanganan Utama)
+          </span>
+          <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+            <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> Sedang (5 Tahun)
+          </span>
+          <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Ringan (1 Tahun)
+          </span>
+        </div>
+        <div class="text-slate-500 font-semibold">
+          Wilayah Aktif: <strong class="text-slate-900">${selectedWil?.kab_kota || '-'}</strong> • Total Tunggakan: <strong class="text-rose-600">${fmtNum(selectedWil?.tung_total)} Unit</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="lg:col-span-5 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+            <div>
+              <span class="text-[10px] font-extrabold text-red-600 uppercase">Detail Geospasial Wilayah Terpilih</span>
+              <h3 class="text-sm font-extrabold text-slate-900">${selectedWil?.kab_kota || 'Pilih Wilayah'}</h3>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold text-white ${selectedWil?.prioritas_utama ? 'bg-red-600' : 'bg-amber-500'}">
+              ${selectedWil?.prioritas_utama ? 'PRIORITAS UTAMA' : 'PRIORITAS SEDANG'}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5 text-xs mb-3">
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div class="text-[10px] text-slate-500">Total Kendaraan (R2+R4)</div>
+              <div class="text-sm font-extrabold text-slate-900">${fmtNum(selectedWil?.kend_total)} Unit</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-blue-50 border border-blue-200">
+              <div class="text-[10px] text-blue-600">Tingkat Kepatuhan Pajak</div>
+              <div class="text-sm font-extrabold text-blue-800">${fmtPct(selectedWil?.kepatuhan)}</div>
+            </div>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div class="p-3 rounded-xl bg-red-50 border border-red-200 flex items-center justify-between">
+              <div>
+                <div class="font-bold text-red-900">Tunggakan Berat (> 10 Tahun)</div>
+                <div class="text-[10px] text-red-600">Wajib Operasi Door-to-Door (DIS) Utama</div>
+              </div>
+              <div class="text-base font-extrabold text-red-700">${fmtNum(selectedWil?.berat_10thn)} Unit</div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+              <div>
+                <div class="font-bold text-amber-900">Tunggakan Sedang (5 Tahun)</div>
+                <div class="text-[10px] text-amber-700">Surat Teguran & Samsat Keliling</div>
+              </div>
+              <div class="text-base font-extrabold text-amber-700">${fmtNum(selectedWil?.sedang_5thn)} Unit</div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+              <div>
+                <div class="font-bold text-emerald-900">Tunggakan Ringan (1 Tahun)</div>
+                <div class="text-[10px] text-emerald-700">Notifikasi WhatsApp / SMS Blast</div>
+              </div>
+              <div class="text-base font-extrabold text-emerald-700">${fmtNum(selectedWil?.ringan_1thn)} Unit</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-7 bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h4 class="font-extrabold text-sm text-slate-800">Urutan Wilayah Prioritas Intensifikasi Provinsi Gorontalo</h4>
+            <p class="text-[11px] text-slate-400">Klik baris wilayah di bawah untuk memfokuskan kamera peta geospasial ke titik wilayah tersebut</p>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 font-extrabold text-[11px]">Prioritas ≥ 10 Tahun</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-900 text-white text-[11px]">
+                <th class="py-2.5 px-3 rounded-tl-lg">Rank</th>
+                <th class="py-2.5 px-3">Kabupaten / Kota</th>
+                <th class="py-2.5 px-2 text-right">Total Tunggakan</th>
+                <th class="py-2.5 px-2 text-right bg-red-600">Berat (>10 Thn)</th>
+                <th class="py-2.5 px-2 text-right">Sedang (5 Thn)</th>
+                <th class="py-2.5 px-2 text-right">Kepatuhan</th>
+                <th class="py-2.5 px-3 text-center rounded-tr-lg">Fokus Peta</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              ${sortedPrioritas.map(function(w, idx) {
+                const isSelected = w.kab_kota === selectedWil?.kab_kota;
+                return `
+                  <tr class="${isSelected ? 'bg-blue-50/80 font-bold' : 'hover:bg-slate-50'} transition cursor-pointer" onclick="window.gisFocusGeoWilayah('${w.kab_kota}')">
+                    <td class="py-2.5 px-3 font-extrabold text-slate-500">#${idx + 1}</td>
+                    <td class="py-2.5 px-3 font-extrabold text-slate-900">${w.kab_kota}</td>
+                    <td class="py-2.5 px-2 text-right font-bold text-slate-700">${fmtNum(w.tung_total)}</td>
+                    <td class="py-2.5 px-2 text-right font-extrabold text-red-600 bg-red-50/50">${fmtNum(w.berat_10thn)}</td>
+                    <td class="py-2.5 px-2 text-right font-semibold text-amber-600">${fmtNum(w.sedang_5thn)}</td>
+                    <td class="py-2.5 px-2 text-right font-bold text-blue-700">${fmtPct(w.kepatuhan)}</td>
+                    <td class="py-2.5 px-3 text-center">
+                      <span class="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold text-[10px]">
+                        <i class="fa-solid fa-location-dot mr-1"></i> Lihat Titik
+                      </span>
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("btn-layer-provinsi").onclick = function() {
+    appState.geoLayerMode = "provinsi";
+    renderGeospasialView(container);
+  };
+
+  document.getElementById("btn-layer-kecamatan").onclick = function() {
+    appState.geoLayerMode = "kecamatan";
+    renderGeospasialView(container);
+  };
+
+  setTimeout(function() {
+    initLeafletGorontaloMap();
+  }, 60);
+}
+
+function initLeafletGorontaloMap() {
+  const mapEl = document.getElementById("leaflet-gorontalo-map");
+  if (!mapEl || typeof L === "undefined") return;
+
+  if (leafletMapInstance) {
+    try {
+      leafletMapInstance.remove();
+    } catch (e) {}
+    leafletMapInstance = null;
+  }
+
+  const isLayerProv = appState.geoLayerMode === "provinsi";
+  const initialCenter = isLayerProv ? [0.63, 122.65] : [0.5520, 123.0568];
+  const initialZoom = isLayerProv ? 9 : 12;
+
+  leafletMapInstance = L.map("leaflet-gorontalo-map", {
+    center: initialCenter,
+    zoom: initialZoom,
+    zoomControl: true,
+    scrollWheelZoom: true
+  });
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | GIS Samsat Bapenda Prov. Gorontalo'
+  }).addTo(leafletMapInstance);
+
+  leafletMarkersGroup = L.layerGroup().addTo(leafletMapInstance);
+
+  if (isLayerProv) {
+    (appState.rekapWilayah || []).forEach(function(w) {
+      const geo = GEO_COORDS[w.kab_kota];
+      if (!geo) return;
+
+      const markerColor = w.berat_10thn >= 25000 ? "#EF4444" : (w.berat_10thn >= 10500 ? "#F59E0B" : "#10B981");
+      const radiusSize = w.berat_10thn >= 30000 ? 24 : (w.berat_10thn >= 25000 ? 20 : 14);
+
+      const circle = L.circleMarker([geo.lat, geo.lng], {
+        radius: radiusSize,
+        fillColor: markerColor,
+        color: "#FFFFFF",
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 0.9
+      }).addTo(leafletMarkersGroup);
+
+      const popupHtml = `
+        <div class="min-w-[220px] text-xs space-y-1.5">
+          <div class="flex items-center justify-between border-b border-slate-200 pb-1">
+            <span class="font-extrabold text-slate-900">${w.kab_kota}</span>
+            <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold text-white" style="background:${markerColor}">
+              ${w.prioritas_utama ? 'PRIORITAS' : 'PANTAU'}
+            </span>
+          </div>
+          <div class="text-[11px] text-slate-500 font-semibold">${geo.samsat} (${geo.ibuKota})</div>
+          <div class="grid grid-cols-2 gap-1.5 pt-1">
+            <div class="p-1.5 rounded bg-slate-100">
+              <div class="text-[9px] text-slate-500">Total Kendaraan</div>
+              <div class="font-extrabold text-slate-800">${fmtNum(w.kend_total)}</div>
+            </div>
+            <div class="p-1.5 rounded bg-rose-50">
+              <div class="text-[9px] text-rose-600">Total Tunggakan</div>
+              <div class="font-extrabold text-rose-700">${fmtNum(w.tung_total)}</div>
+            </div>
+          </div>
+          <div class="pt-1 space-y-0.5 text-[11px]">
+            <div class="flex justify-between text-red-600 font-bold"><span>• Berat (>10 Thn):</span><span>${fmtNum(w.berat_10thn)} Unit</span></div>
+            <div class="flex justify-between text-amber-600 font-bold"><span>• Sedang (5 Thn):</span><span>${fmtNum(w.sedang_5thn)} Unit</span></div>
+            <div class="flex justify-between text-emerald-600 font-bold"><span>• Ringan (1 Thn):</span><span>${fmtNum(w.ringan_1thn)} Unit</span></div>
+            <div class="flex justify-between text-blue-700 font-extrabold pt-1 border-t border-slate-100"><span>Tingkat Kepatuhan:</span><span>${fmtPct(w.kepatuhan)}</span></div>
+          </div>
+        </div>
+      `;
+
+      circle.bindPopup(popupHtml);
+      circle.on("click", function() {
+        appState.selectedGeoWilayah = w.kab_kota;
+      });
+
+      if (w.kab_kota === appState.selectedGeoWilayah) {
+        circle.openPopup();
+      }
+    });
+  } else {
+    GEO_KECAMATAN_POINTS.forEach(function(pt) {
+      const circle = L.circleMarker([pt.lat, pt.lng], {
+        radius: 12,
+        fillColor: pt.color,
+        color: "#FFFFFF",
+        weight: 2.5,
+        opacity: 1,
+        fillOpacity: 0.92
+      }).addTo(leafletMarkersGroup);
+
+      const popupHtml = `
+        <div class="min-w-[220px] text-xs space-y-1.5">
+          <div class="border-b border-slate-200 pb-1">
+            <div class="text-[10px] font-bold text-blue-600">${pt.kab_kota}</div>
+            <div class="font-extrabold text-slate-900 text-sm">KEC. ${pt.kecamatan}</div>
+          </div>
+          <div class="text-[10px] text-slate-500"><strong>Desa/Kelurahan:</strong> ${pt.kelurahan}</div>
+          <div class="grid grid-cols-2 gap-1.5 pt-1">
+            <div class="p-1.5 rounded bg-slate-100">
+              <div class="text-[9px] text-slate-500">Kendaraan</div>
+              <div class="font-extrabold text-slate-800">${fmtNum(pt.kend)}</div>
+            </div>
+            <div class="p-1.5 rounded bg-rose-50">
+              <div class="text-[9px] text-rose-600">Tunggakan</div>
+              <div class="font-extrabold text-rose-700">${fmtNum(pt.tung)}</div>
+            </div>
+          </div>
+          <div class="flex items-center justify-between pt-1 text-[11px] font-extrabold text-red-600">
+            <span>Prioritas >10 Tahun:</span>
+            <span>${fmtNum(pt.berat)} Unit</span>
+          </div>
+        </div>
+      `;
+      circle.bindPopup(popupHtml);
+    });
+  }
+
+  setTimeout(function() {
+    if (leafletMapInstance) leafletMapInstance.invalidateSize();
+  }, 150);
+}
+
+// ============================================================================
+// VIEW 5: POTENSI PAD OPTIMAL (10% DARI UNIT x Rp 1.000.000) & KEPATUHAN (44,67%)
+// ============================================================================
+function renderPotensiKepatuhanView(container) {
+  const agg = getDashboardAggregates();
+  const rekap = appState.rekapWilayah || [];
+  const bobotPct = Number(appState.config.bobotOptimalisasi || 10);
+
+  container.innerHTML = `
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+      <div>
+        <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-chart-pie text-emerald-600"></i>
+          Analisis Potensi PAD Optimal (${bobotPct}%) & Kepatuhan Wajib Pajak Provinsi Gorontalo (44,67%)
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">
+          Simulasi optimalisasi ${bobotPct}% dari jumlah unit tunggakan per kategori dengan nilai rata-rata <strong>${fmtRp(agg.nilaiRataUnit)} / unit</strong> serta proyeksi kenaikan kepatuhan wilayah
+        </p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-bold text-slate-600">Bobot (%):</span>
+          <input type="number" id="input-bobot-opt" value="${bobotPct}" min="1" max="100" class="w-16 px-2.5 py-1.5 rounded-xl border border-slate-300 font-extrabold text-xs text-center" />
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-bold text-slate-600">Rata-rata/Unit (Rp):</span>
+          <input type="number" id="input-rata-unit" value="${agg.nilaiRataUnit}" step="50000" class="w-32 px-2.5 py-1.5 rounded-xl border border-slate-300 font-extrabold text-xs text-right" />
+        </div>
+        <button type="button" id="btn-save-bobot" class="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm">
+          Simpan Parameter
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+        <div>
+          <h3 class="font-extrabold text-sm text-slate-900">
+            Komposisi Potensi PAD Optimal (Potensi ${bobotPct}% dari ${fmtNum(agg.totalTung)} Unit Tunggakan × Nilai Rata ${fmtRp(agg.nilaiRataUnit)} / Unit)
+          </h3>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Total Potensi Tambahan PAD Optimal (${fmtNum(agg.unitOptTotal)} Unit × ${fmtRp(agg.nilaiRataUnit)}):
+            <strong class="text-emerald-600 font-extrabold">${fmtMiliarText(agg.potensiPAD10)} (${fmtRp(agg.potensiPAD10)})</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- KATEGORI BERAT (> 10 TAHUN) -->
+        <div class="p-5 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white shadow-md">
+          <div class="flex items-center justify-between text-xs font-extrabold text-red-100">
+            <span>KATEGORI BERAT (> 10 TAHUN)</span>
+            <span class="px-2.5 py-0.5 rounded-md bg-white/20 text-white">MERAH</span>
+          </div>
+          <div class="text-3xl font-extrabold mt-2.5 tracking-tight">${fmtMiliarText(agg.potensiBeratRp)}</div>
+          <div class="text-xs font-bold text-amber-200 mt-1">${fmtRp(agg.potensiBeratRp)}</div>
+          <div class="text-[11px] text-red-100 mt-2 pt-2 border-t border-white/15 leading-relaxed">
+            Potensi ${bobotPct}% dari <strong>${fmtNum(agg.totalBerat)} unit</strong> (${fmtNum(agg.unitOptBerat)} unit) dengan nilai rata ${fmtRp(agg.nilaiRataUnit)} / unit = <strong>${(agg.potensiBeratRp / 1e9).toFixed(2).replace('.', ',')} Miliar</strong>
+          </div>
+        </div>
+
+        <!-- KATEGORI SEDANG (5 TAHUN) -->
+        <div class="p-5 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md">
+          <div class="flex items-center justify-between text-xs font-extrabold text-amber-100">
+            <span>KATEGORI SEDANG (5 TAHUN)</span>
+            <span class="px-2.5 py-0.5 rounded-md bg-white/20 text-white">KUNING</span>
+          </div>
+          <div class="text-3xl font-extrabold mt-2.5 tracking-tight">${fmtMiliarText(agg.potensiSedangRp)}</div>
+          <div class="text-xs font-bold text-amber-100 mt-1">${fmtRp(agg.potensiSedangRp)}</div>
+          <div class="text-[11px] text-amber-50 mt-2 pt-2 border-t border-white/15 leading-relaxed">
+            Potensi ${bobotPct}% dari <strong>${fmtNum(agg.totalSedang)} unit</strong> (${fmtNum(agg.unitOptSedang)} unit) dengan nilai rata ${fmtRp(agg.nilaiRataUnit)} / unit = <strong>${(agg.potensiSedangRp / 1e9).toFixed(2).replace('.', ',')} Miliar</strong>
+          </div>
+        </div>
+
+        <!-- KATEGORI RINGAN (1 TAHUN) -->
+        <div class="p-5 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
+          <div class="flex items-center justify-between text-xs font-extrabold text-emerald-100">
+            <span>KATEGORI RINGAN (1 TAHUN)</span>
+            <span class="px-2.5 py-0.5 rounded-md bg-white/20 text-white">HIJAU</span>
+          </div>
+          <div class="text-3xl font-extrabold mt-2.5 tracking-tight">${fmtMiliarText(agg.potensiRinganRp)}</div>
+          <div class="text-xs font-bold text-emerald-100 mt-1">${fmtRp(agg.potensiRinganRp)}</div>
+          <div class="text-[11px] text-emerald-50 mt-2 pt-2 border-t border-white/15 leading-relaxed">
+            Potensi ${bobotPct}% dari <strong>${fmtNum(agg.totalRingan)} unit</strong> (${fmtNum(agg.unitOptRingan)} unit) dengan nilai rata ${fmtRp(agg.nilaiRataUnit)} / unit = <strong>${(agg.potensiRinganRp / 1e9).toFixed(2).replace('.', ',')} Miliar</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+        <div>
+          <h3 class="font-extrabold text-sm text-slate-800">Data Tingkat Kepatuhan Wajib Pajak Per Wilayah & Simulasi Penanganan Prioritas (+${bobotPct}%)</h3>
+          <p class="text-[11px] text-slate-400">Sesuai Rekapitulasi Resmi Bapenda Provinsi Gorontalo Tahun 2026 (Total Kepatuhan Provinsi: <strong>44,67%</strong>)</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-3 py-1 rounded-full bg-pink-50 text-pink-700 font-extrabold text-xs">Eksisting: ${fmtPct(agg.kepatuhanProv)}</span>
+          <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-extrabold text-xs">Target Simulasi (+${bobotPct}%): ${fmtPct(agg.proyeksiKepatuhanAbsolut)}</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-navy-900 text-white text-[11px]">
+              <th class="py-2.5 px-3 rounded-tl-lg">WILAYAH & KATEGORI</th>
+              <th class="py-2.5 px-2 text-right">SUDAH PENUL</th>
+              <th class="py-2.5 px-2 text-right">BELUM PENUL</th>
+              <th class="py-2.5 px-2 text-right">OBYEK LAMA</th>
+              <th class="py-2.5 px-2 text-right">OBYEK BARU</th>
+              <th class="py-2.5 px-2 text-right">JUMLAH OBYEK</th>
+              <th class="py-2.5 px-2 text-right bg-blue-800">TINGKAT KEPATUHAN</th>
+              <th class="py-2.5 px-3 text-right bg-emerald-700 rounded-tr-lg">ANALISIS +${bobotPct}% PRIORITAS</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 text-xs">
+            ${rekap.map(function(w) {
+              const simR4 = Math.min(100, Number(w.r4_patuh) + bobotPct);
+              const simR2 = Math.min(100, Number(w.r2_patuh) + bobotPct);
+              const simSub = Math.min(100, Number(w.kepatuhan) + bobotPct);
+              return `
+                <tr class="bg-slate-100/80 font-extrabold text-slate-900">
+                  <td colspan="8" class="py-2 px-3 text-blue-900">${w.kab_kota}</td>
+                </tr>
+                <tr class="hover:bg-slate-50">
+                  <td class="py-1.5 px-3 pl-6 font-semibold text-slate-600">RODA EMPAT (R4)</td>
+                  <td class="py-1.5 px-2 text-right">${fmtNum(w.r4_sudah)}</td>
+                  <td class="py-1.5 px-2 text-right">${fmtNum(w.r4_belum)}</td>
+                  <td class="py-1.5 px-2 text-right">${fmtNum(w.r4_lama)}</td>
+                  <td class="py-1.5 px-2 text-right">${fmtNum(w.r4_baru)}</td>
+                  <td class="py-1.5 px-2 text-right font-bold">${fmtNum(w.r4_objek)}</td>
+                  <td class="py-1.5 px-2 text-right font-bold text-blue-700 bg-blue-50/50">${fmtPct(w.r4_patuh)}</td>
+                  <td class="py-1.5 px-3 text-right font-bold text-emerald-700 bg-emerald-50/50">${fmtPct(simR4)}</td>
+                </tr>
+                <tr class="hover:bg-slate-50">
+                  <td class="py-1.5 px-3 pl-6 font-semibold text-slate-600">RODA DUA (R2)</td>
+                  <td class="py-1.5 px-2 text-right">${fmtNum(w.r2_sudah)}</td>
+                  <td class="py-1.5 px-2 text-right">${fmtNum(w.r2_belum)}</td>
+                  <td class="py-1.5 px-2 text-right">${fmtNum(w.r2_lama)}</td>
+                  <td class="py-1.5 px-2 text-right">${fmtNum(w.r2_baru)}</td>
+                  <td class="py-1.5 px-2 text-right font-bold">${fmtNum(w.r2_objek)}</td>
+                  <td class="py-1.5 px-2 text-right font-bold text-blue-700 bg-blue-50/50">${fmtPct(w.r2_patuh)}</td>
+                  <td class="py-1.5 px-3 text-right font-bold text-emerald-700 bg-emerald-50/50">${fmtPct(simR2)}</td>
+                </tr>
+                <tr class="bg-blue-50/30 font-extrabold text-slate-900">
+                  <td class="py-2 px-3 pl-6">SUB JUMLAH ${w.kab_kota}</td>
+                  <td class="py-2 px-2 text-right text-emerald-700">${fmtNum(w.sub_sudah)}</td>
+                  <td class="py-2 px-2 text-right text-rose-600">${fmtNum(w.sub_belum)}</td>
+                  <td class="py-2 px-2 text-right">${fmtNum(w.sub_lama)}</td>
+                  <td class="py-2 px-2 text-right">${fmtNum(w.sub_baru)}</td>
+                  <td class="py-2 px-2 text-right">${fmtNum(w.sub_objek)}</td>
+                  <td class="py-2 px-2 text-right text-blue-800 bg-blue-100/60">${fmtPct(w.kepatuhan)}</td>
+                  <td class="py-2 px-3 text-right text-emerald-800 bg-emerald-100/60">${fmtPct(simSub)}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+          <tfoot>
+            <tr class="bg-navy-900 text-white font-extrabold text-xs">
+              <td class="py-3 px-3">REKAPITULASI TINGKAT PROVINSI (TOTAL)</td>
+              <td class="py-3 px-2 text-right text-emerald-300">${fmtNum(agg.totalSudahPenul)}</td>
+              <td class="py-3 px-2 text-right text-rose-300">${fmtNum(agg.totalBelumPenul)}</td>
+              <td class="py-3 px-2 text-right">${fmtNum(agg.totalObjekLama)}</td>
+              <td class="py-3 px-2 text-right">${fmtNum(agg.totalObjekBaru)}</td>
+              <td class="py-3 px-2 text-right">${fmtNum(agg.totalObjekPajak)}</td>
+              <td class="py-3 px-2 text-right text-amber-300 text-sm">${fmtPct(agg.kepatuhanProv)}</td>
+              <td class="py-3 px-3 text-right text-emerald-300 text-sm">${fmtPct(agg.proyeksiKepatuhanAbsolut)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("btn-save-bobot").onclick = async function() {
+    const valBobot = Number(document.getElementById("input-bobot-opt").value || 10);
+    const valRata = Number(document.getElementById("input-rata-unit").value || 1000000);
+    appState.config.bobotOptimalisasi = valBobot;
+    appState.config.nilaiRataUnit = valRata;
+    await saveStateToStorage();
+    renderPotensiKepatuhanView(container);
+    showToast("Parameter Potensi (" + valBobot + "% unit × " + fmtRp(valRata) + ") berhasil disimpan!", "success");
+  };
+}
+
+// ============================================================================
+// VIEW 6: PERKEMBANGAN TARGET & REALISASI BULANAN (PKB & BBNKB)
+// ============================================================================
+function renderRealisasiView(container) {
+  const agg = getDashboardAggregates();
+  const bulanRows = appState.realisasiBulanan || [];
+
+  let runningSisaPKB = agg.targetPKB;
+  let runningSisaBBNKB = agg.targetBBNKB;
+  let kumulatifPKB = 0;
+  let kumulatifBBNKB = 0;
+
+  container.innerHTML = `
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+      <div>
+        <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-money-bill-trend-up text-emerald-600"></i>
+          Perkembangan Target dan Realisasi Penerimaan Samsat Per Bulan (PKB & BBNKB 2026)
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">Ubah target tahunan maupun realisasi bulanan lalu klik tombol <strong>Simpan Semua Perubahan</strong> untuk memperbarui dashboard secara otomatis</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" id="btn-save-all-realisasi" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs shadow-md flex items-center gap-2">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan Semua Perubahan Target & Realisasi
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-blue-600 uppercase">Target Tahunan PKB 2026 (Rp)</span>
+          <input type="number" id="input-target-pkb" value="${agg.targetPKB}" class="mt-1 block w-64 px-3 py-2 rounded-xl border border-slate-300 font-extrabold text-sm text-slate-900" />
+        </div>
+        <div class="text-right">
+          <div class="text-xs text-slate-400">Total Realisasi PKB</div>
+          <div class="text-lg font-extrabold text-blue-600">${fmtRp(agg.realisasiPKB)}</div>
+          <div class="text-xs font-bold text-emerald-600">Capaian: ${fmtPct(agg.pctPKB)}</div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex items-center justify-between">
+        <div>
+          <span class="text-[11px] font-bold text-emerald-600 uppercase">Target Tahunan BBNKB 2026 (Rp)</span>
+          <input type="number" id="input-target-bbnkb" value="${agg.targetBBNKB}" class="mt-1 block w-64 px-3 py-2 rounded-xl border border-slate-300 font-extrabold text-sm text-slate-900" />
+        </div>
+        <div class="text-right">
+          <div class="text-xs text-slate-400">Total Realisasi BBNKB</div>
+          <div class="text-lg font-extrabold text-emerald-600">${fmtRp(agg.realisasiBBNKB)}</div>
+          <div class="text-xs font-bold text-amber-600">Capaian: ${fmtPct(agg.pctBBNKB)}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-navy-900 text-white text-[11px]">
+              <th class="py-3 px-3 rounded-tl-lg">NO</th>
+              <th class="py-3 px-3">BULAN</th>
+              <th class="py-3 px-3 text-right">REALISASI PKB (RP)</th>
+              <th class="py-3 px-2 text-right">% KUM PKB</th>
+              <th class="py-3 px-3 text-right">SISA TARGET PKB</th>
+              <th class="py-3 px-3 text-right">REALISASI BBNKB (RP)</th>
+              <th class="py-3 px-2 text-right">% KUM BBNKB</th>
+              <th class="py-3 px-3 text-right">SISA TARGET BBNKB</th>
+              <th class="py-3 px-3 text-center rounded-tr-lg">AKSI</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 text-xs">
+            ${bulanRows.map(function(b) {
+              const pkbVal = Number(b.pkb || 0);
+              const bbnkbVal = Number(b.bbnkb || 0);
+              kumulatifPKB += pkbVal;
+              kumulatifBBNKB += bbnkbVal;
+              runningSisaPKB -= pkbVal;
+              runningSisaBBNKB -= bbnkbVal;
+              const pctKumPkb = agg.targetPKB > 0 ? (kumulatifPKB / agg.targetPKB) * 100 : 0;
+              const pctKumBbn = agg.targetBBNKB > 0 ? (kumulatifBBNKB / agg.targetBBNKB) * 100 : 0;
+
+              return `
+                <tr class="hover:bg-slate-50">
+                  <td class="py-2.5 px-3 font-bold text-slate-400">${b.no}</td>
+                  <td class="py-2.5 px-3 font-extrabold text-slate-800">${b.bulan}</td>
+                  <td class="py-2.5 px-3 text-right">
+                    <input type="number" data-bulan-pkb="${b.no}" value="${pkbVal}" class="w-40 text-right font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 focus:border-blue-600 outline-none" />
+                  </td>
+                  <td class="py-2.5 px-2 text-right font-extrabold text-blue-600">${fmtPct(pctKumPkb)}</td>
+                  <td class="py-2.5 px-3 text-right font-semibold text-slate-500">${fmtRp(runningSisaPKB)}</td>
+                  <td class="py-2.5 px-3 text-right">
+                    <input type="number" data-bulan-bbnkb="${b.no}" value="${bbnkbVal}" class="w-40 text-right font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 focus:border-emerald-600 outline-none" />
+                  </td>
+                  <td class="py-2.5 px-2 text-right font-extrabold text-emerald-600">${fmtPct(pctKumBbn)}</td>
+                  <td class="py-2.5 px-3 text-right font-semibold ${runningSisaBBNKB < 0 ? 'text-emerald-600' : 'text-slate-500'}">${fmtRp(runningSisaBBNKB)}</td>
+                  <td class="py-2.5 px-3 text-center">
+                    <button type="button" data-save-row-bulan="${b.no}" class="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px]">
+                      Simpan
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+          <tfoot>
+            <tr class="bg-slate-900 text-white font-extrabold text-xs">
+              <td colspan="2" class="py-3.5 px-3">TOTAL REALISASI TAHUN 2026</td>
+              <td class="py-3.5 px-3 text-right text-amber-300">${fmtRp(agg.realisasiPKB)}</td>
+              <td class="py-3.5 px-2 text-right text-amber-300">${fmtPct(agg.pctPKB)}</td>
+              <td class="py-3.5 px-3 text-right">${fmtRp(agg.targetPKB - agg.realisasiPKB)}</td>
+              <td class="py-3.5 px-3 text-right text-emerald-300">${fmtRp(agg.realisasiBBNKB)}</td>
+              <td class="py-3.5 px-2 text-right text-emerald-300">${fmtPct(agg.pctBBNKB)}</td>
+              <td class="py-3.5 px-3 text-right">${fmtRp(agg.targetBBNKB - agg.realisasiBBNKB)}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const saveAllRealisasi = async function() {
+    appState.config.targetPKB = Number(document.getElementById("input-target-pkb").value || 0);
+    appState.config.targetBBNKB = Number(document.getElementById("input-target-bbnkb").value || 0);
+
+    for (const b of appState.realisasiBulanan) {
+      const pkbEl = container.querySelector('[data-bulan-pkb="' + b.no + '"]');
+      const bbnEl = container.querySelector('[data-bulan-bbnkb="' + b.no + '"]');
+      if (pkbEl) b.pkb = Number(pkbEl.value || 0);
+      if (bbnEl) b.bbnkb = Number(bbnEl.value || 0);
+      if (!IS_PREVIEW && fbDb) {
+        try { await setDoc(doc(fbDb, "realisasi_bulanan", "bulan-" + b.no), b, { merge: true }); } catch (e) {}
+      }
+    }
+
+    await saveStateToStorage();
+    renderRealisasiView(container);
+    showToast("Perkembangan Target & Realisasi Bulanan berhasil disimpan dan disinkronkan ke Dashboard!", "success");
+  };
+
+  document.getElementById("btn-save-all-realisasi").onclick = saveAllRealisasi;
+  container.querySelectorAll("[data-save-row-bulan]").forEach(function(btn) {
+    btn.onclick = saveAllRealisasi;
+  });
+}
+
+// ============================================================================
+// VIEW 7: INTEGRASI URL DOOR TO DOOR SAMSAT (DIS) DIGITAL
+// ============================================================================
+function renderIntegrasiDISView(container) {
+  const baseUrl = window.location.origin + window.location.pathname;
+  const sampleIntegrationUrl = baseUrl + "?dis_sync=1&kab=KABUPATEN+GORONTALO&kec=LIMBOTO&desa=KAYUBULAN&nopol=DM+4519+B&jenis=R2&kategori=Berat+(>10+Tahun)&nominal=1750000&status=Lunas+Ditempat&petugas=Tim+DIS+Samsat";
+
+  container.innerHTML = `
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+      <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+        <i class="fa-solid fa-link text-blue-600"></i>
+        Generator URL & Rekaman Sistem Aplikasi Door To Door Samsat (DIS) Digital
+      </h2>
+      <p class="text-xs text-slate-500 mt-0.5">
+        Integrasikan aplikasi lapangan <strong>Door To Door Samsat (DIS) Digital</strong> dengan Dashboard Pengendalian ini melalui URL Parameter otomatis maupun input sinkronisasi langsung.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="lg:col-span-7 bg-white rounded-xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h3 class="font-extrabold text-sm text-slate-800">1. Endpoint URL Integrasi Otomatis (DIS Digital → GIS Dashboard)</h3>
+        <p class="text-xs text-slate-500 leading-relaxed">
+          Sematkan format URL berikut pada tombol <em>"Kirim ke Dashboard Pengendalian"</em> di aplikasi <strong>Door To Door Samsat (DIS) Digital</strong>. Saat URL diakses, sistem ini secara otomatis merekam kunjungan wajib pajak ke dalam tabel dan memperbarui statistik.
+        </p>
+
+        <div class="p-3 rounded-xl bg-slate-900 text-emerald-300 font-mono text-[11px] break-all border border-slate-700">
+          <div id="dis-generated-url">${sampleIntegrationUrl}</div>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="btn-copy-dis-url" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2">
+            <i class="fa-regular fa-copy"></i> Salin URL Integrasi DIS
+          </button>
+          <button type="button" id="btn-simulasi-webhook" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2">
+            <i class="fa-solid fa-satellite-dish"></i> Uji Simulasi Kirim Data dari DIS Digital
+          </button>
+        </div>
+      </div>
+
+      <div class="lg:col-span-5 bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <h3 class="font-extrabold text-sm text-slate-800 mb-3">2. Form Rekam Kunjungan Door-to-Door (DIS)</h3>
+        <form id="form-input-dis" class="space-y-2.5 text-xs">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="font-bold text-slate-700">Kabupaten/Kota</label>
+              <select id="dis-kab" class="w-full p-2 rounded-lg border border-slate-300 font-semibold mt-0.5">
+                ${WILAYAH_LIST.map(function(w) { return '<option value="' + w + '">' + w + '</option>'; }).join("")}
+              </select>
+            </div>
+            <div>
+              <label class="font-bold text-slate-700">Kecamatan</label>
+              <input type="text" id="dis-kec" required placeholder="Contoh: LIMBOTO" class="w-full p-2 rounded-lg border border-slate-300 mt-0.5" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="font-bold text-slate-700">Nomor Polisi (Nopol)</label>
+              <input type="text" id="dis-nopol" required placeholder="DM 1234 XX" class="w-full p-2 rounded-lg border border-slate-300 mt-0.5" />
+            </div>
+            <div>
+              <label class="font-bold text-slate-700">Kategori Tunggakan</label>
+              <select id="dis-kat" class="w-full p-2 rounded-lg border border-slate-300 font-semibold mt-0.5">
+                <option value="Berat (>10 Tahun)">Berat (>10 Tahun) - Merah</option>
+                <option value="Sedang (5 Tahun)">Sedang (5 Tahun) - Kuning</option>
+                <option value="Ringan (1 Tahun)">Ringan (1 Tahun) - Hijau</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="font-bold text-slate-700">Nominal Pembayaran/Potensi (Rp)</label>
+              <input type="number" id="dis-nominal" required value="1500000" class="w-full p-2 rounded-lg border border-slate-300 font-bold mt-0.5" />
+            </div>
+            <div>
+              <label class="font-bold text-slate-700">Status Tindak Lanjut</label>
+              <select id="dis-status" class="w-full p-2 rounded-lg border border-slate-300 font-semibold mt-0.5">
+                <option value="Lunas ditempat (QRIS)">Lunas ditempat (QRIS)</option>
+                <option value="Janji Bayar Samsat">Janji Bayar Samsat</option>
+                <option value="Kendaraan Rusak Berat">Kendaraan Rusak Berat</option>
+                <option value="Pindah Alamat">Pindah Alamat</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-navy-900 hover:bg-blue-800 text-white font-bold">
+            <i class="fa-solid fa-paper-plane mr-1"></i> Rekam Data ke Dashboard GIS
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+      <h3 class="font-extrabold text-sm text-slate-800 mb-3">Riwayat Rekaman Terintegrasi Aplikasi Door To Door Samsat (DIS) Digital</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-900 text-white text-[11px]">
+              <th class="py-2.5 px-3">ID LOG</th>
+              <th class="py-2.5 px-3">WAKTU REKAM</th>
+              <th class="py-2.5 px-3">WILAYAH & KECAMATAN</th>
+              <th class="py-2.5 px-3">NOPOL</th>
+              <th class="py-2.5 px-3">KATEGORI TUNGGAKAN</th>
+              <th class="py-2.5 px-3 text-right">NOMINAL (RP)</th>
+              <th class="py-2.5 px-3">STATUS TINDAK LANJUT</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-xs">
+            ${(appState.disLogs || []).map(function(l) {
+              return `
+                <tr class="hover:bg-slate-50">
+                  <td class="py-2.5 px-3 font-mono font-bold text-blue-600">${l.id}</td>
+                  <td class="py-2.5 px-3 text-slate-500">${l.timestamp}</td>
+                  <td class="py-2.5 px-3 font-bold text-slate-800">${l.kab_kota} • Kec. ${l.kecamatan}</td>
+                  <td class="py-2.5 px-3 font-extrabold text-slate-900">${l.nopol} (${l.jenis})</td>
+                  <td class="py-2.5 px-3">
+                    <span class="px-2 py-0.5 rounded font-bold text-[10px] ${
+                      l.kategori.includes('Berat') ? 'bg-red-100 text-red-700' : (l.kategori.includes('Sedang') ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700')
+                    }">${l.kategori}</span>
+                  </td>
+                  <td class="py-2.5 px-3 text-right font-extrabold text-emerald-600">${fmtRp(l.nominal)}</td>
+                  <td class="py-2.5 px-3 font-semibold text-slate-700">${l.status}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("btn-copy-dis-url").onclick = function() {
+    const temp = document.createElement("textarea");
+    temp.value = sampleIntegrationUrl;
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand("copy");
+    temp.remove();
+    showToast("URL Integrasi Door To Door Samsat (DIS) Digital berhasil disalin ke clipboard!", "success");
+  };
+
+  document.getElementById("btn-simulasi-webhook").onclick = async function() {
+    const entry = {
+      id: "DIS-" + Date.now().toString().slice(-5),
+      timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
+      kab_kota: "KABUPATEN POHUWATO",
+      kecamatan: "MARISA",
+      desa_kelurahan: "MARISA SELATAN",
+      nopol: "DM 3891 F",
+      jenis: "R2",
+      kategori: "Berat (>10 Tahun)",
+      nominal: 1850000,
+      status: "Terekam Otomatis via URL DIS",
+      petugas: "Tim DIS Marisa"
+    };
+    appState.disLogs.unshift(entry);
+    if (!IS_PREVIEW && fbDb) {
+      try { await addDoc(collection(fbDb, "integrasi_dis_logs"), entry); } catch (e) {}
+    }
+    await saveStateToStorage();
+    renderIntegrasiDISView(container);
+    showToast("Simulasi tangkapan URL DIS Digital berhasil direkam ke dalam dashboard!", "success");
+  };
+
+  document.getElementById("form-input-dis").onsubmit = async function(e) {
+    e.preventDefault();
+    const entry = {
+      id: "DIS-" + Date.now().toString().slice(-5),
+      timestamp: new Date().toISOString().slice(0, 16).replace("T", " "),
+      kab_kota: document.getElementById("dis-kab").value,
+      kecamatan: document.getElementById("dis-kec").value.trim().toUpperCase(),
+      desa_kelurahan: "-",
+      nopol: document.getElementById("dis-nopol").value.trim().toUpperCase(),
+      jenis: "R2/R4",
+      kategori: document.getElementById("dis-kat").value,
+      nominal: Number(document.getElementById("dis-nominal").value || 0),
+      status: document.getElementById("dis-status").value,
+      petugas: appState.currentUser?.displayName || "Operator DIS"
+    };
+    appState.disLogs.unshift(entry);
+    if (!IS_PREVIEW && fbDb) {
+      try { await addDoc(collection(fbDb, "integrasi_dis_logs"), entry); } catch (e) {}
+    }
+    await saveStateToStorage();
+    renderIntegrasiDISView(container);
+    showToast("Data kunjungan Door-to-Door berhasil disimpan!", "success");
+  };
+}
+
+// ============================================================================
+// VIEW 8: LAPORAN EKSEKUTIF & ALAT PENGAMBILAN KEPUTUSAN PIMPINAN (DSS)
+// ============================================================================
+function renderLaporanDSSView(container) {
+  const agg = getDashboardAggregates();
+  const rekap = [...(appState.rekapWilayah || [])].sort(function(a, b) { return b.berat_10thn - a.berat_10thn; });
+
+  container.innerHTML = `
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 no-print">
+      <div>
+        <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-file-signature text-indigo-600"></i>
+          Laporan Eksekutif & Alat Pengambilan Keputusan Pimpinan (Decision Support System)
+        </h2>
+        <p class="text-xs text-slate-500 mt-0.5">Rangkuman analitik menyeluruh sebagai instrumen kebijakan Kepala Badan Pendapatan Daerah Provinsi Gorontalo</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" id="btn-export-excel-laporan" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-file-excel"></i> Export Rekap Excel
+        </button>
+        <button type="button" onclick="window.print()" class="px-4 py-2 rounded-xl bg-navy-900 hover:bg-blue-800 text-white font-bold text-xs flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-print"></i> Cetak Laporan Pimpinan
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 lg:p-8 shadow-sm border border-slate-200 space-y-6">
+      <div class="border-b-2 border-slate-900 pb-4 text-center">
+        <h1 class="text-lg font-extrabold text-slate-900 uppercase">PEMERINTAH PROVINSI GORONTALO</h1>
+        <h2 class="text-base font-extrabold text-blue-900 uppercase">BADAN PENDAPATAN DAERAH</h2>
+        <p class="text-xs font-bold text-slate-600">BIDANG PENGENDALIAN DAN EVALUASI PENDAPATAN DAERAH</p>
+        <p class="text-[11px] text-slate-500 mt-1">Laporan Analisis Pengambilan Keputusan Intensifikasi Pajak Kendaraan Bermotor Tahun 2026</p>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+          <div class="text-[11px] text-slate-500 font-semibold">Total Kendaraan Terdaftar</div>
+          <div class="text-lg font-extrabold text-slate-900">${fmtNum(agg.totalKend)} Unit</div>
+          <div class="text-[10px] text-slate-500">R2: ${fmtNum(agg.totalKendR2)} | R4: ${fmtNum(agg.totalKendR4)}</div>
+        </div>
+        <div class="p-3.5 rounded-xl bg-rose-50 border border-rose-200">
+          <div class="text-[11px] text-rose-700 font-semibold">Total Objek Menunggak</div>
+          <div class="text-lg font-extrabold text-rose-700">${fmtNum(agg.totalTung)} Unit</div>
+          <div class="text-[10px] text-rose-600">Berat (>10 Thn): ${fmtNum(agg.totalBerat)} Unit</div>
+        </div>
+        <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
+          <div class="text-[11px] text-emerald-700 font-semibold">Potensi Optimalisasi PAD (${appState.config.bobotOptimalisasi}%)</div>
+          <div class="text-lg font-extrabold text-emerald-700">${fmtMiliarText(agg.potensiPAD10)}</div>
+          <div class="text-[10px] text-emerald-600">${fmtNum(agg.unitOptTotal)} Unit × ${fmtRpShort(agg.nilaiRataUnit)}</div>
+        </div>
+        <div class="p-3.5 rounded-xl bg-blue-50 border border-blue-200">
+          <div class="text-[11px] text-blue-700 font-semibold">Tingkat Kepatuhan Provinsi</div>
+          <div class="text-lg font-extrabold text-blue-800">${fmtPct(agg.kepatuhanProv)} → ${fmtPct(agg.proyeksiKepatuhanAbsolut)}</div>
+          <div class="text-[10px] text-blue-600">Proyeksi Penanganan Prioritas +${appState.config.bobotOptimalisasi}%</div>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="font-extrabold text-sm text-slate-900 mb-2">A. Matriks Prioritas Wilayah & Rekomendasi Tindakan Pimpinan</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse border border-slate-300 text-xs">
+            <thead>
+              <tr class="bg-slate-100 text-slate-800 font-extrabold">
+                <th class="border border-slate-300 py-2 px-3">Peringkat</th>
+                <th class="border border-slate-300 py-2 px-3">Kabupaten / Kota</th>
+                <th class="border border-slate-300 py-2 px-3 text-right">Total Tunggakan</th>
+                <th class="border border-slate-300 py-2 px-3 text-right text-red-700">Berat (>10 Thn)</th>
+                <th class="border border-slate-300 py-2 px-3 text-right">Kepatuhan Saat Ini</th>
+                <th class="border border-slate-300 py-2 px-3">Rekomendasi Keputusan Operasional</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rekap.map(function(w, idx) {
+                return `
+                  <tr>
+                    <td class="border border-slate-300 py-2 px-3 font-extrabold text-center">#${idx + 1}</td>
+                    <td class="border border-slate-300 py-2 px-3 font-extrabold">${w.kab_kota}</td>
+                    <td class="border border-slate-300 py-2 px-3 text-right font-bold">${fmtNum(w.tung_total)}</td>
+                    <td class="border border-slate-300 py-2 px-3 text-right font-extrabold text-red-600">${fmtNum(w.berat_10thn)}</td>
+                    <td class="border border-slate-300 py-2 px-3 text-right font-bold">${fmtPct(w.kepatuhan)}</td>
+                    <td class="border border-slate-300 py-2 px-3 text-[11px] font-semibold text-slate-700">
+                      ${w.prioritas_utama
+                        ? 'Terjunkan Tim Gabungan Door-to-Door (DIS) Digital & Razia Terpadu Prioritas Utama'
+                        : 'Optimalkan Samsat Keliling Desa & Penagihan Kolektif Kecamatan'}
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2 text-xs text-slate-800">
+        <h4 class="font-extrabold text-amber-900">B. Rekomendasi Strategis Pengambilan Keputusan Pimpinan:</h4>
+        <ol class="list-decimal list-inside space-y-1 leading-relaxed">
+          <li><strong>Fokus Utama Penanganan Tunggakan Berat (>10 Tahun - Kategori Merah):</strong> Potensi ${appState.config.bobotOptimalisasi}% dari <strong>${fmtNum(agg.totalBerat)} unit</strong> dengan nilai rata ${fmtRp(agg.nilaiRataUnit)} / unit menghasilkan <strong>${fmtMiliarText(agg.potensiBeratRp)}</strong>.</li>
+          <li><strong>Optimalisasi Kategori Sedang (5 Tahun) & Ringan (1 Tahun):</strong> Potensi ${appState.config.bobotOptimalisasi}% dari Kategori Sedang (${fmtNum(agg.totalSedang)} unit) menghasilkan <strong>${fmtMiliarText(agg.potensiSedangRp)}</strong> dan Kategori Ringan (${fmtNum(agg.totalRingan)} unit) menghasilkan <strong>${fmtMiliarText(agg.potensiRinganRp)}</strong>, sehingga total potensi optimalisasi mencapai <strong>${fmtMiliarText(agg.potensiPAD10)}</strong>.</li>
+          <li><strong>Peningkatan Kepatuhan Wajib Pajak dari 44,67% ke ${fmtPct(agg.proyeksiKepatuhanAbsolut)}:</strong> Penanganan prioritas pada Kabupaten Pohuwato (27,00%) dan Kabupaten Boalemo (31,42%) terutama pada segmen Roda 2 akan mendongkrak rata-rata kepatuhan provinsi secara signifikan.</li>
+        </ol>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("btn-export-excel-laporan").onclick = function() {
+    const wb = XLSX.utils.book_new();
+    const wsRekap = XLSX.utils.json_to_sheet(appState.rekapWilayah);
+    const wsRealisasi = XLSX.utils.json_to_sheet(appState.realisasiBulanan);
+    XLSX.utils.book_append_sheet(wb, wsRekap, "Rekap_Wilayah_Kepatuhan");
+    XLSX.utils.book_append_sheet(wb, wsRealisasi, "Realisasi_PKB_BBNKB");
+    XLSX.writeFile(wb, "Laporan_Eksekutif_GIS_Bapenda_Gorontalo_2026.xlsx");
+  };
+}
+
+// ============================================================================
+// VIEW 9: PENGATURAN ADMIN (GANTI USERNAME & PASSWORD bapenda2026 + KELOLA PETUGAS)
+// ============================================================================
+function renderPengaturanView(container) {
+  container.innerHTML = `
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+      <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+        <i class="fa-solid fa-user-gear text-blue-600"></i>
+        Pengaturan Kredensial Admin & Manajemen Operator Wilayah / Petugas DIS
+      </h2>
+      <p class="text-xs text-slate-500 mt-0.5">Admin dapat mengganti Username dan Password akses (<code class="font-bold">bapenda2026</code>) serta mengelola akun petugas lapangan</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div class="lg:col-span-6 bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+        <h3 class="font-extrabold text-sm text-slate-800 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-key text-amber-500"></i> Ubah Username & Password Admin
+        </h3>
+        <form id="form-update-admin" class="space-y-3.5 text-xs">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Username Admin Baru</label>
+            <input type="text" id="set-admin-user" required value="${appState.config.adminUsername || 'admin'}" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Password Admin Baru (Default: bapenda2026)</label>
+            <input type="text" id="set-admin-pass" required value="${appState.config.adminPassword || 'bapenda2026'}" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Persentase Kepatuhan Provinsi (%)</label>
+            <input type="number" step="0.01" id="set-kepatuhan-prov" required value="${appState.config.kepatuhanProvinsi || 44.67}" class="w-full p-2.5 rounded-xl border border-slate-300 font-bold" />
+          </div>
+          <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold shadow">
+            <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Perubahan Kredensial Admin
+          </button>
+        </form>
+      </div>
+
+      <div class="lg:col-span-6 bg-white rounded-xl p-5 shadow-sm border border-slate-200">
+        <h3 class="font-extrabold text-sm text-slate-800 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-users-gear text-emerald-600"></i> Tambah Akun Operator Samsat / Petugas DIS
+        </h3>
+        <form id="form-add-petugas" class="space-y-3 text-xs mb-4">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Username Petugas</label>
+              <input type="text" id="pet-user" required placeholder="petugas_limboto" class="w-full p-2 rounded-lg border border-slate-300" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Password Petugas</label>
+              <input type="text" id="pet-pass" required placeholder="dis2026" class="w-full p-2 rounded-lg border border-slate-300" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Nama Lengkap / Tim</label>
+              <input type="text" id="pet-nama" required placeholder="Tim DIS Samsat Limboto" class="w-full p-2 rounded-lg border border-slate-300" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Wilayah Tugas</label>
+              <select id="pet-wil" class="w-full p-2 rounded-lg border border-slate-300 font-semibold">
+                ${WILAYAH_LIST.map(function(w) { return '<option value="' + w + '">' + w + '</option>'; }).join("")}
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+            <i class="fa-solid fa-user-plus mr-1"></i> Tambah Akun Petugas
+          </button>
+        </form>
+
+        <div class="border-t border-slate-100 pt-3">
+          <h4 class="font-bold text-xs text-slate-600 mb-2">Daftar Akun Petugas Terdaftar:</h4>
+          <div class="space-y-1.5">
+            ${(appState.usersPetugas || []).map(function(u) {
+              return `
+                <div class="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                  <div>
+                    <span class="font-extrabold text-slate-800">${u.nama_lengkap}</span>
+                    <span class="text-slate-500"> (${u.username} / ${u.password})</span>
+                  </div>
+                  <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-bold text-[10px]">${u.wilayah_samsat}</span>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("form-update-admin").onsubmit = async function(e) {
+    e.preventDefault();
+    const newUser = document.getElementById("set-admin-user").value.trim();
+    const newPass = document.getElementById("set-admin-pass").value.trim();
+    const newPatuh = Number(document.getElementById("set-kepatuhan-prov").value || 44.67);
+
+    appState.config.adminUsername = newUser;
+    appState.config.adminPassword = newPass;
+    appState.config.kepatuhanProvinsi = newPatuh;
+
+    if (!IS_PREVIEW && fbAuth && fbAuth.currentUser) {
+      try {
+        await updatePassword(fbAuth.currentUser, newPass);
+      } catch (err) {}
+    }
+
+    await saveStateToStorage();
+    showToast("Username ('" + newUser + "') & Password Admin berhasil diperbarui dan disimpan!", "success");
+  };
+
+  document.getElementById("form-add-petugas").onsubmit = async function(e) {
+    e.preventDefault();
+    const newPetugas = {
+      id: "usr-" + Date.now(),
+      username: document.getElementById("pet-user").value.trim(),
+      password: document.getElementById("pet-pass").value.trim(),
+      nama_lengkap: document.getElementById("pet-nama").value.trim(),
+      wilayah_samsat: document.getElementById("pet-wil").value,
+      role: "petugas_dis"
+    };
+    appState.usersPetugas.push(newPetugas);
+    if (!IS_PREVIEW && fbDb) {
+      try { await addDoc(collection(fbDb, "users_petugas"), newPetugas); } catch (e) {}
+    }
+    await saveStateToStorage();
+    renderPengaturanView(container);
+    showToast("Akun petugas lapangan berhasil ditambahkan!", "success");
+  };
+}
+
+window.gisSwitchMenu = function(menuId) { switchMenu(menuId); };
+window.gisSelectGeo = function(wilayah) {
+  appState.selectedGeoWilayah = wilayah;
+  renderCurrentMenu();
+};
+window.gisFocusGeoWilayah = function(wilayah) {
+  appState.selectedGeoWilayah = wilayah;
+  appState.geoLayerMode = "provinsi";
+  renderCurrentMenu();
+  setTimeout(function() {
+    const geo = GEO_COORDS[wilayah];
+    if (leafletMapInstance && geo) {
+      leafletMapInstance.setView([geo.lat, geo.lng], 10, { animate: true });
+    }
+  }, 150);
+};
+
+window.addEventListener("DOMContentLoaded", initApplication);
+</script>
+</body>
+</html>
